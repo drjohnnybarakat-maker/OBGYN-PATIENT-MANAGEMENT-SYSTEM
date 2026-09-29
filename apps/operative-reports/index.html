@@ -1,0 +1,2068 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GynOp — Operative Report System</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300&family=DM+Sans:wght@300;400;500;600&display=swap');
+
+  :root {
+    --navy: #0a1628;
+    --deep: #112240;
+    --panel: #162a47;
+    --accent: #4fc3f7;
+    --gold: #c9a96e;
+    --soft: #8baabf;
+    --text: #e8f0f8;
+    --muted: #6b8aaa;
+    --border: rgba(79,195,247,0.18);
+    --success: #4caf87;
+    --onco: #e57373;
+    --benign: #81c784;
+    --repro: #ce93d8;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--navy);
+    color: var(--text);
+    min-height: 100vh;
+  }
+
+  /* ── HEADER ── */
+  header {
+    background: linear-gradient(135deg, var(--deep) 0%, #0d1f3c 100%);
+    border-bottom: 1px solid var(--border);
+    padding: 18px 36px;
+    display: flex;
+    align-items: center;
+    gap: 18px;
+    position: sticky; top: 0; z-index: 100;
+    box-shadow: 0 4px 32px rgba(0,0,0,0.4);
+  }
+  .logo-mark {
+    width: 44px; height: 44px;
+    background: linear-gradient(135deg, var(--accent), #0288d1);
+    border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 22px; flex-shrink: 0;
+  }
+  header h1 {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 26px; font-weight: 600;
+    letter-spacing: 0.04em; color: var(--text);
+  }
+  header h1 span { color: var(--accent); }
+  header p { font-size: 11px; color: var(--muted); letter-spacing: 0.08em; text-transform: uppercase; margin-top: 2px; }
+
+  /* ── LAYOUT ── */
+  .app { display: flex; min-height: calc(100vh - 73px); }
+
+  /* ── SIDEBAR ── */
+  .sidebar {
+    width: 240px; flex-shrink: 0;
+    background: var(--deep);
+    border-right: 1px solid var(--border);
+    padding: 24px 0;
+  }
+  .sidebar-section { margin-bottom: 8px; }
+  .sidebar-label {
+    font-size: 10px; font-weight: 600; letter-spacing: 0.14em;
+    text-transform: uppercase; color: var(--muted);
+    padding: 6px 20px 10px;
+  }
+  .sidebar-btn {
+    display: flex; align-items: center; gap: 10px;
+    width: 100%; padding: 11px 20px;
+    background: none; border: none;
+    color: var(--soft); font-family: 'DM Sans', sans-serif;
+    font-size: 13px; font-weight: 400; cursor: pointer;
+    text-align: left; transition: all 0.15s;
+    border-left: 3px solid transparent;
+  }
+  .sidebar-btn:hover { background: rgba(79,195,247,0.07); color: var(--text); }
+  .sidebar-btn.active { background: rgba(79,195,247,0.12); color: var(--accent); border-left-color: var(--accent); }
+  .sidebar-btn.onco { --h: var(--onco); }
+  .sidebar-btn.onco.active, .sidebar-btn.onco:hover { color: var(--onco); border-left-color: var(--onco); background: rgba(229,115,115,0.1); }
+  .sidebar-btn.benign { }
+  .sidebar-btn.benign.active, .sidebar-btn.benign:hover { color: var(--benign); border-left-color: var(--benign); background: rgba(129,199,132,0.1); }
+  .sidebar-btn.repro.active, .sidebar-btn.repro:hover { color: var(--repro); border-left-color: var(--repro); background: rgba(206,147,216,0.1); }
+  .dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+  .dot-onco { background: var(--onco); }
+  .dot-benign { background: var(--benign); }
+  .dot-repro { background: var(--repro); }
+
+  /* ── MAIN CONTENT ── */
+  .main { flex: 1; overflow-y: auto; padding: 32px; background: var(--navy); }
+
+  .page { display: none; }
+  .page.active { display: block; }
+
+  /* ── WELCOME ── */
+  .welcome-hero {
+    text-align: center; padding: 60px 20px 40px;
+  }
+  .welcome-hero h2 {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 42px; font-weight: 300; color: var(--text);
+    line-height: 1.2;
+  }
+  .welcome-hero h2 em { color: var(--accent); font-style: italic; }
+  .welcome-hero p { color: var(--muted); font-size: 15px; margin-top: 12px; max-width: 560px; margin-inline: auto; line-height: 1.7; }
+  .cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; margin-top: 48px; max-width: 800px; margin-inline: auto; }
+  .card {
+    background: var(--deep);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 28px 22px;
+    cursor: pointer; transition: all 0.2s;
+    text-align: center;
+  }
+  .card:hover { transform: translateY(-4px); box-shadow: 0 12px 40px rgba(0,0,0,0.4); }
+  .card-icon { font-size: 36px; margin-bottom: 12px; }
+  .card-title { font-family: 'Cormorant Garamond', serif; font-size: 20px; font-weight: 600; margin-bottom: 6px; }
+  .card.onco { border-color: rgba(229,115,115,0.3); }
+  .card.onco .card-title { color: var(--onco); }
+  .card.benign { border-color: rgba(129,199,132,0.3); }
+  .card.benign .card-title { color: var(--benign); }
+  .card.repro { border-color: rgba(206,147,216,0.3); }
+  .card.repro .card-title { color: var(--repro); }
+  .card p { font-size: 12px; color: var(--muted); line-height: 1.6; }
+
+  /* ── SECTION HEADER ── */
+  .section-head {
+    display: flex; align-items: center; gap: 14px;
+    margin-bottom: 28px; padding-bottom: 18px;
+    border-bottom: 1px solid var(--border);
+  }
+  .section-badge {
+    padding: 4px 14px; border-radius: 20px;
+    font-size: 11px; font-weight: 600; letter-spacing: 0.1em;
+    text-transform: uppercase;
+  }
+  .badge-onco { background: rgba(229,115,115,0.2); color: var(--onco); border: 1px solid rgba(229,115,115,0.4); }
+  .badge-benign { background: rgba(129,199,132,0.2); color: var(--benign); border: 1px solid rgba(129,199,132,0.4); }
+  .badge-repro { background: rgba(206,147,216,0.2); color: var(--repro); border: 1px solid rgba(206,147,216,0.4); }
+  .section-head h2 { font-family: 'Cormorant Garamond', serif; font-size: 28px; font-weight: 400; }
+
+  /* ── FORM ELEMENTS ── */
+  .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .form-grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; }
+  .form-group { display: flex; flex-direction: column; gap: 6px; }
+  .form-group.full { grid-column: 1 / -1; }
+  label { font-size: 11px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); }
+  input[type="text"], input[type="date"], input[type="number"], select, textarea {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 8px; color: var(--text);
+    font-family: 'DM Sans', sans-serif; font-size: 13px;
+    padding: 9px 13px; outline: none; width: 100%;
+    transition: border-color 0.15s;
+  }
+  input:focus, select:focus, textarea:focus { border-color: var(--accent); }
+  select option { background: var(--panel); }
+  textarea { resize: vertical; min-height: 80px; }
+
+  .card-box {
+    background: var(--deep); border: 1px solid var(--border);
+    border-radius: 12px; padding: 22px 24px; margin-bottom: 18px;
+  }
+  .card-box h3 {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 17px; font-weight: 600; color: var(--accent);
+    margin-bottom: 16px; display: flex; align-items: center; gap: 8px;
+  }
+  .card-box h3 .ico { font-size: 15px; }
+
+  /* ── CHECKBOXES ── */
+  .check-group { display: flex; flex-wrap: wrap; gap: 8px; }
+  .check-item {
+    display: inline-flex; align-items: center; gap: 7px;
+    background: var(--panel); border: 1px solid var(--border);
+    border-radius: 20px; padding: 6px 14px 6px 10px;
+    cursor: pointer; font-size: 12px; color: var(--soft);
+    transition: background 0.15s, border-color 0.15s, color 0.15s;
+    user-select: none; line-height: 1.3;
+  }
+  .check-item:hover { border-color: rgba(79,195,247,0.5); color: var(--text); }
+  /* The tick box inside each item */
+  .check-item .ci-box {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 15px; height: 15px; min-width: 15px;
+    border-radius: 3px; border: 1.5px solid var(--muted);
+    background: transparent; font-size: 10px; font-weight: 800;
+    transition: all 0.15s; color: transparent;
+  }
+  /* DEFAULT checked (blue) */
+  .check-item.checked { background: rgba(79,195,247,0.15); border-color: var(--accent); color: var(--accent); }
+  .check-item.checked .ci-box { background: var(--accent); border-color: var(--accent); color: var(--navy); }
+  /* Oncologic — red */
+  #page-onco .check-item.checked { background: rgba(229,115,115,0.18); border-color: var(--onco); color: var(--onco); }
+  #page-onco .check-item.checked .ci-box { background: var(--onco); border-color: var(--onco); color: #fff; }
+  /* Benign — green */
+  #page-benign .check-item.checked { background: rgba(129,199,132,0.18); border-color: var(--benign); color: var(--benign); }
+  #page-benign .check-item.checked .ci-box { background: var(--benign); border-color: var(--benign); color: #111; }
+  /* Repro — purple */
+  #page-repro .check-item.checked { background: rgba(206,147,216,0.18); border-color: var(--repro); color: var(--repro); }
+  #page-repro .check-item.checked .ci-box { background: var(--repro); border-color: var(--repro); color: #111; }
+
+  /* Organ type tabs */
+  .organ-tabs { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 24px; }
+  .organ-tab {
+    padding: 8px 18px; border-radius: 8px;
+    border: 1px solid var(--border); background: var(--deep);
+    color: var(--muted); font-size: 13px; cursor: pointer;
+    transition: all 0.15s; font-family: 'DM Sans', sans-serif;
+  }
+  .organ-tab:hover { border-color: var(--accent); color: var(--text); }
+  .organ-tab.active { background: var(--accent); color: var(--navy); border-color: var(--accent); font-weight: 600; }
+  .organ-tab.onco-tab.active { background: var(--onco); border-color: var(--onco); color: white; }
+  .organ-tab.benign-tab.active { background: var(--benign); border-color: var(--benign); color: #111; }
+
+  .organ-panel { display: none; }
+  .organ-panel.active { display: block; }
+
+  /* ── BUTTONS ── */
+  .btn {
+    padding: 10px 22px; border-radius: 8px; border: none;
+    font-family: 'DM Sans', sans-serif; font-size: 13px; font-weight: 600;
+    cursor: pointer; transition: all 0.15s; display: inline-flex;
+    align-items: center; gap: 7px;
+  }
+  .btn-primary { background: var(--accent); color: var(--navy); }
+  .btn-primary:hover { background: #81d4fa; }
+  .btn-gold { background: var(--gold); color: var(--navy); }
+  .btn-gold:hover { background: #d4b97e; }
+  .btn-outline { background: transparent; border: 1px solid var(--border); color: var(--soft); }
+  .btn-outline:hover { border-color: var(--accent); color: var(--accent); }
+  .btn-danger { background: #ef5350; color: white; }
+  .btn-danger:hover { background: #e53935; }
+  .btn-success { background: var(--success); color: white; }
+  .btn-success:hover { background: #43a573; }
+
+  .action-row { display: flex; gap: 12px; margin-top: 24px; align-items: center; flex-wrap: wrap; }
+
+  /* ── PREVIEW ── */
+  #preview-modal {
+    display: none; position: fixed; inset: 0; z-index: 200;
+    background: rgba(0,0,0,0.75); backdrop-filter: blur(6px);
+    align-items: center; justify-content: center;
+  }
+  #preview-modal.show { display: flex; }
+  .modal-box {
+    background: var(--deep); border: 1px solid var(--border);
+    border-radius: 16px; width: 760px; max-width: 95vw;
+    max-height: 90vh; display: flex; flex-direction: column;
+    box-shadow: 0 24px 80px rgba(0,0,0,0.6);
+  }
+  .modal-head {
+    padding: 18px 24px; border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .modal-head h3 { font-family: 'Cormorant Garamond', serif; font-size: 20px; }
+  .modal-body { padding: 24px; overflow-y: auto; flex: 1; }
+  .modal-foot { padding: 16px 24px; border-top: 1px solid var(--border); display: flex; gap: 12px; justify-content: flex-end; }
+  .report-preview {
+    font-family: Georgia, serif; font-size: 13px; line-height: 1.8;
+    color: var(--text); white-space: pre-wrap;
+    background: rgba(0,0,0,0.3); padding: 20px; border-radius: 8px;
+  }
+  .report-preview h2 { font-size: 17px; text-align: center; border-bottom: 1px solid var(--muted); padding-bottom: 8px; margin-bottom: 14px; }
+  .report-preview h3 { font-size: 14px; margin-top: 14px; margin-bottom: 4px; color: var(--accent); }
+
+  .divider { height: 1px; background: var(--border); margin: 20px 0; }
+
+  /* ── SMALL UTILITIES ── */
+  .mt-4 { margin-top: 16px; }
+  .mb-2 { margin-bottom: 8px; }
+  .text-muted { color: var(--muted); font-size: 12px; }
+
+  /* ── REPRO SPECIFIC ── */
+  .repro-tabs { display: flex; gap: 0; margin-bottom: 24px; background: var(--panel); border-radius: 10px; padding: 4px; }
+  .repro-tab {
+    flex: 1; padding: 9px; text-align: center;
+    border-radius: 7px; font-size: 13px; cursor: pointer;
+    color: var(--muted); transition: all 0.15s; border: none;
+    background: none; font-family: 'DM Sans', sans-serif;
+  }
+  .repro-tab.active { background: var(--repro); color: var(--navy); font-weight: 600; }
+
+  .stim-entry {
+    display: flex; gap: 10px; align-items: center; margin-bottom: 8px;
+  }
+  .stim-entry input, .stim-entry select { flex: 1; }
+  .stim-entry .rm { background: rgba(229,115,115,0.2); border: 1px solid rgba(229,115,115,0.4); color: var(--onco); border-radius: 6px; padding: 7px 10px; cursor: pointer; font-size: 12px; }
+  .add-row-btn { background: rgba(79,195,247,0.1); border: 1px dashed var(--accent); color: var(--accent); border-radius: 8px; padding: 8px 16px; cursor: pointer; font-size: 12px; font-family: 'DM Sans', sans-serif; width: 100%; margin-top: 6px; }
+  .add-row-btn:hover { background: rgba(79,195,247,0.2); }
+
+  .result-badge {
+    display: inline-block; padding: 2px 10px; border-radius: 10px;
+    font-size: 11px; font-weight: 600;
+  }
+  .normal { background: rgba(129,199,132,0.2); color: var(--benign); }
+  .abnormal { background: rgba(229,115,115,0.2); color: var(--onco); }
+
+  /* sub-label */
+  .sub-label { font-size: 11px; color: var(--muted); margin-top: -4px; margin-bottom: 6px; }
+
+  @media (max-width: 700px) {
+    .sidebar { display: none; }
+    .form-grid, .form-grid-3 { grid-template-columns: 1fr; }
+    .cards { grid-template-columns: 1fr; }
+  }
+
+  /* ── BACK BUTTON ── */
+  .back-bar {
+    display: flex; align-items: center; gap: 12px;
+    margin-bottom: 22px;
+  }
+  .btn-back {
+    display: inline-flex; align-items: center; gap: 7px;
+    background: rgba(79,195,247,0.08); border: 1px solid var(--border);
+    color: var(--soft); border-radius: 8px; padding: 7px 16px;
+    font-family: 'DM Sans', sans-serif; font-size: 13px; font-weight: 500;
+    cursor: pointer; transition: all 0.15s;
+  }
+  .btn-back:hover { background: rgba(79,195,247,0.16); color: var(--accent); border-color: var(--accent); }
+  .btn-back svg { width:14px; height:14px; }
+  .breadcrumb { font-size: 12px; color: var(--muted); }
+  .breadcrumb span { color: var(--soft); }
+
+  /* ── FOLDER SETUP MODAL ── */
+  #folder-modal {
+    display: flex; position: fixed; inset: 0; z-index: 500;
+    background: rgba(0,0,0,0.88); backdrop-filter: blur(8px);
+    align-items: center; justify-content: center;
+  }
+  #folder-modal.hidden { display: none; }
+  .folder-box {
+    background: var(--deep); border: 1px solid var(--border);
+    border-radius: 18px; width: 520px; max-width: 95vw;
+    padding: 40px; text-align: center;
+    box-shadow: 0 32px 100px rgba(0,0,0,0.7);
+  }
+  .folder-icon { font-size: 56px; margin-bottom: 16px; display: block; }
+  .folder-box h2 { font-family: 'Cormorant Garamond', serif; font-size: 28px; font-weight: 600; margin-bottom: 10px; }
+  .folder-box p { color: var(--muted); font-size: 13px; line-height: 1.7; margin-bottom: 24px; }
+  .folder-path-display {
+    background: var(--panel); border: 1px solid var(--border);
+    border-radius: 8px; padding: 11px 16px; font-size: 13px;
+    color: var(--soft); text-align: left; margin-bottom: 20px;
+    font-family: monospace; word-break: break-all;
+  }
+  .folder-path-display .folder-set { color: var(--accent); }
+  .folder-actions { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+  .save-status {
+    display: inline-flex; align-items: center; gap: 6px;
+    font-size: 12px; color: var(--success); margin-top: 10px;
+    opacity: 0; transition: opacity 0.3s;
+  }
+  .save-status.show { opacity: 1; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo-mark">⚕</div>
+  <div style="flex:1">
+    <h1>Gyn<span>Op</span> Report System</h1>
+    <p>Gynecologic Operative Report Editor</p>
+  </div>
+  <button class="btn btn-outline" onclick="openFolderModal()" style="font-size:12px;padding:7px 14px;flex-shrink:0;">
+    📁 <span id="folder-btn-label">Set Save Folder</span>
+  </button>
+</header>
+
+<!-- FOLDER SETUP MODAL -->
+<div id="folder-modal">
+  <div class="folder-box">
+    <span class="folder-icon">📁</span>
+    <h2>Set Reports Save Folder</h2>
+    <p>Choose where your PDF operative reports will be saved on this computer. A folder named <strong>Operative Reports</strong> is recommended on your Desktop or Documents.</p>
+    <div class="folder-path-display" id="folder-display">
+      <span style="color:var(--muted)">No folder selected yet — click below to choose</span>
+    </div>
+    <div class="folder-actions">
+      <button class="btn btn-primary" onclick="selectFolder()">📂 Browse & Select Folder</button>
+      <button class="btn btn-outline" id="skip-btn" onclick="skipFolderSetup()">Skip for now</button>
+    </div>
+    <div class="save-status" id="folder-saved-badge">✓ Folder saved — PDFs will be sent here</div>
+    <p style="margin-top:18px;font-size:11px;color:var(--muted)">
+      Note: Due to browser security, the app will remember your chosen folder name and suggest it as the PDF filename. Your browser's download folder will receive the PDF — move it to your Operative Reports folder. You can change this anytime via the 📁 button in the header.
+    </p>
+  </div>
+</div>
+
+<div class="app">
+<!-- SIDEBAR -->
+<nav class="sidebar">
+  <div class="sidebar-section">
+    <div class="sidebar-label">Navigation</div>
+    <button class="sidebar-btn active" onclick="showPage('home')">🏠 &nbsp;Dashboard</button>
+  </div>
+  <div class="sidebar-section">
+    <div class="sidebar-label">Oncologic Surgery</div>
+    <button class="sidebar-btn onco" onclick="showPage('onco')"><span class="dot dot-onco"></span>New Report</button>
+  </div>
+  <div class="sidebar-section">
+    <div class="sidebar-label">Benign Surgery</div>
+    <button class="sidebar-btn benign" onclick="showPage('benign')"><span class="dot dot-benign"></span>New Report</button>
+  </div>
+  <div class="sidebar-section">
+    <div class="sidebar-label">Assisted Reproduction</div>
+    <button class="sidebar-btn repro" onclick="showPage('repro')"><span class="dot dot-repro"></span>New Record</button>
+  </div>
+</nav>
+
+<!-- MAIN -->
+<main class="main">
+
+<!-- =============================== HOME =============================== -->
+<div class="page active" id="page-home">
+  <div class="welcome-hero">
+    <h2>Operative Report<br><em>Management System</em></h2>
+    <p>A specialized platform for gynecologic surgery documentation. Select a module below to begin a new operative report.</p>
+  </div>
+  <div class="cards">
+    <div class="card onco" onclick="showPage('onco')">
+      <div class="card-icon">🔬</div>
+      <div class="card-title">Oncologic Surgery</div>
+      <p>Vulvar, vaginal, cervical, uterine, ovarian & breast malignancies</p>
+    </div>
+    <div class="card benign" onclick="showPage('benign')">
+      <div class="card-icon">🏥</div>
+      <div class="card-title">Benign Surgery</div>
+      <p>Open & laparoscopic benign gynecologic procedures</p>
+    </div>
+    <div class="card repro" onclick="showPage('repro')">
+      <div class="card-icon">🧬</div>
+      <div class="card-title">Assisted Reproduction</div>
+      <p>IUI, IVF, stimulation protocols, embryo transfer & cryopreservation</p>
+    </div>
+  </div>
+</div>
+
+<!-- =============================== ONCOLOGIC =============================== -->
+<div class="page" id="page-onco">
+  <div class="back-bar">
+    <button class="btn-back" onclick="showPage('home')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>
+      Back to Dashboard
+    </button>
+    <span class="breadcrumb">Dashboard → <span>Oncologic Surgery</span></span>
+  </div>
+  <div class="section-head">
+    <span class="section-badge badge-onco">Oncologic Surgery</span>
+    <h2>Operative Report — Malignancy</h2>
+  </div>
+
+  <!-- Patient Info -->
+  <div class="card-box">
+    <h3><span class="ico">👤</span> Patient Information</h3>
+    <div class="form-grid">
+      <div class="form-group"><label>Patient Full Name</label><input type="text" id="o-name" placeholder="Full name"></div>
+      <div class="form-group"><label>Date of Birth</label><input type="date" id="o-dob"></div>
+      <div class="form-group"><label>Date of Procedure</label><input type="date" id="o-date"></div>
+      <div class="form-group"><label>Surgeon</label><input type="text" id="o-surgeon" placeholder="Operating surgeon"></div>
+      <div class="form-group full"><label>Primary Diagnosis / Indication</label><input type="text" id="o-indication" placeholder="e.g. Stage IB2 cervical carcinoma"></div>
+    </div>
+  </div>
+
+  <!-- Organ Selector -->
+  <div class="card-box">
+    <h3><span class="ico">🎯</span> Select Organ / Cancer Type</h3>
+    <div class="organ-tabs" id="onco-tabs">
+      <button class="organ-tab onco-tab active" onclick="switchOrgan('onco','vulvar')">Vulvar</button>
+      <button class="organ-tab onco-tab" onclick="switchOrgan('onco','vaginal')">Vaginal</button>
+      <button class="organ-tab onco-tab" onclick="switchOrgan('onco','cervical')">Cervical</button>
+      <button class="organ-tab onco-tab" onclick="switchOrgan('onco','uterine')">Uterine</button>
+      <button class="organ-tab onco-tab" onclick="switchOrgan('onco','ovarian')">Ovarian</button>
+      <button class="organ-tab onco-tab" onclick="switchOrgan('onco','breast')">Breast</button>
+    </div>
+
+    <!-- VULVAR -->
+    <div class="organ-panel active" id="onco-vulvar">
+      <div class="form-group mb-2"><label>Histologic Type</label>
+        <select id="v-histo"><option>Squamous cell carcinoma</option><option>Melanoma</option><option>Bartholin gland carcinoma</option><option>Verrucous carcinoma</option><option>Basal cell carcinoma</option><option>Adenocarcinoma</option><option>Other</option></select>
+      </div>
+      <div class="form-grid">
+        <div class="form-group"><label>FIGO Stage</label>
+          <select id="v-stage"><option>Stage I</option><option>Stage IA</option><option>Stage IB</option><option>Stage II</option><option>Stage IIIA</option><option>Stage IIIB</option><option>Stage IIIC</option><option>Stage IVA</option><option>Stage IVB</option></select>
+        </div>
+        <div class="form-group"><label>Lesion Location</label>
+          <select id="v-location"><option>Anterior vulva</option><option>Posterior vulva</option><option>Right labium majus</option><option>Left labium majus</option><option>Right labium minus</option><option>Left labium minus</option><option>Clitoris</option><option>Perineum</option><option>Multifocal</option></select>
+        </div>
+        <div class="form-group"><label>Lesion Size (cm)</label><input type="text" id="v-size" placeholder="e.g. 3.5 cm"></div>
+        <div class="form-group"><label>Procedure Type</label>
+          <select id="v-proc"><option>Wide local excision</option><option>Simple vulvectomy</option><option>Radical local excision</option><option>Radical hemivulvectomy</option><option>Radical vulvectomy</option><option>Skinning vulvectomy</option></select>
+        </div>
+      </div>
+      <label class="mt-4 mb-2" style="display:block;">Intraoperative Findings</label>
+      <div class="check-group" id="v-findings">
+        <span class="check-item"><span class="ci-box">✓</span>Tumor well-defined margins</span>
+        <span class="check-item"><span class="ci-box">✓</span>Tumor with infiltrative margins</span>
+        <span class="check-item"><span class="ci-box">✓</span>Satellite lesions</span>
+        <span class="check-item"><span class="ci-box">✓</span>Clitoral involvement</span>
+        <span class="check-item"><span class="ci-box">✓</span>Urethral involvement</span>
+        <span class="check-item"><span class="ci-box">✓</span>Vaginal extension</span>
+        <span class="check-item"><span class="ci-box">✓</span>Perianal involvement</span>
+        <span class="check-item"><span class="ci-box">✓</span>Positive inguinal nodes — ipsilateral</span>
+        <span class="check-item"><span class="ci-box">✓</span>Positive inguinal nodes — bilateral</span>
+        <span class="check-item"><span class="ci-box">✓</span>Sentinel node biopsy performed</span>
+        <span class="check-item"><span class="ci-box">✓</span>Sentinel node negative (blue dye / radiocolloid)</span>
+        <span class="check-item"><span class="ci-box">✓</span>Inguinofemoral lymphadenectomy performed</span>
+        <span class="check-item"><span class="ci-box">✓</span>Reconstruction flap used</span>
+        <span class="check-item"><span class="ci-box">✓</span>Primary closure achieved</span>
+        <span class="check-item"><span class="ci-box">✓</span>Drain placed</span>
+      </div>
+      <div class="form-group mt-4"><label>Lymph Nodes Removed (count)</label><input type="text" id="v-nodes" placeholder="e.g. Right 8, Left 6"></div>
+      <div class="form-group mt-4"><label>Margins (intraoperative assessment)</label>
+        <select id="v-margins"><option>Free margins</option><option>Close margins — further excision performed</option><option>Positive margins — further excision performed</option><option>Margins not assessable intraoperatively</option></select>
+      </div>
+    </div>
+
+    <!-- VAGINAL -->
+    <div class="organ-panel" id="onco-vaginal">
+      <div class="form-grid">
+        <div class="form-group"><label>Histologic Type</label>
+          <select id="vag-histo"><option>Squamous cell carcinoma</option><option>Adenocarcinoma</option><option>Clear cell carcinoma</option><option>Melanoma</option><option>Sarcoma</option><option>Other</option></select>
+        </div>
+        <div class="form-group"><label>FIGO Stage</label>
+          <select id="vag-stage"><option>Stage I</option><option>Stage II</option><option>Stage III</option><option>Stage IVA</option><option>Stage IVB</option></select>
+        </div>
+        <div class="form-group"><label>Location in Vagina</label>
+          <select id="vag-loc"><option>Upper third</option><option>Middle third</option><option>Lower third</option><option>Entire vagina</option><option>Anterior wall</option><option>Posterior wall</option><option>Lateral wall</option></select>
+        </div>
+        <div class="form-group"><label>Lesion Size (cm)</label><input type="text" id="vag-size" placeholder="e.g. 4 cm"></div>
+        <div class="form-group"><label>Procedure</label>
+          <select id="vag-proc"><option>Partial vaginectomy</option><option>Total vaginectomy</option><option>Radical vaginectomy</option><option>Radical hysterectomy + vaginectomy</option><option>Pelvic exenteration — anterior</option><option>Pelvic exenteration — posterior</option><option>Total pelvic exenteration</option></select>
+        </div>
+        <div class="form-group"><label>Lymphadenectomy</label>
+          <select id="vag-lymph"><option>Not performed</option><option>Pelvic lymphadenectomy</option><option>Inguinofemoral lymphadenectomy</option><option>Pelvic + inguinofemoral</option></select>
+        </div>
+      </div>
+      <label class="mt-4 mb-2" style="display:block;">Intraoperative Findings</label>
+      <div class="check-group" id="vag-findings">
+        <span class="check-item"><span class="ci-box">✓</span>Parametrial involvement</span>
+        <span class="check-item"><span class="ci-box">✓</span>Bladder involvement</span>
+        <span class="check-item"><span class="ci-box">✓</span>Rectal involvement</span>
+        <span class="check-item"><span class="ci-box">✓</span>Extension to vulva</span>
+        <span class="check-item"><span class="ci-box">✓</span>Extension to cervix</span>
+        <span class="check-item"><span class="ci-box">✓</span>Hydronephrosis noted preop</span>
+        <span class="check-item"><span class="ci-box">✓</span>Grossly enlarged lymph nodes</span>
+        <span class="check-item"><span class="ci-box">✓</span>Intraoperative hemorrhage</span>
+        <span class="check-item"><span class="ci-box">✓</span>Free margins</span>
+        <span class="check-item"><span class="ci-box">✓</span>Drain placed</span>
+      </div>
+      <div class="form-group mt-4"><label>Additional Notes</label><textarea id="vag-notes" placeholder="Describe additional intraoperative findings..."></textarea></div>
+    </div>
+
+    <!-- CERVICAL -->
+    <div class="organ-panel" id="onco-cervical">
+      <div class="form-grid">
+        <div class="form-group"><label>Histologic Type</label>
+          <select id="cx-histo"><option>Squamous cell carcinoma</option><option>Adenocarcinoma</option><option>Adenosquamous carcinoma</option><option>Small cell carcinoma</option><option>Neuroendocrine carcinoma</option><option>Other</option></select>
+        </div>
+        <div class="form-group"><label>FIGO Stage</label>
+          <select id="cx-stage"><option>IA1</option><option>IA2</option><option>IB1</option><option>IB2</option><option>IB3</option><option>IIA1</option><option>IIA2</option><option>IIB</option><option>IIIA</option><option>IIIB</option><option>IIIC1</option><option>IIIC2</option><option>IVA</option><option>IVB</option></select>
+        </div>
+        <div class="form-group"><label>Tumor Size (cm)</label><input type="text" id="cx-size" placeholder="e.g. 3.5 cm"></div>
+        <div class="form-group"><label>Approach</label>
+          <select id="cx-approach"><option>Open (laparotomy)</option><option>Laparoscopic</option><option>Robot-assisted laparoscopic</option><option>Vaginal</option></select>
+        </div>
+        <div class="form-group"><label>Procedure Type</label>
+          <select id="cx-proc"><option>LLETZ / LEEP cone biopsy</option><option>Cold knife conization</option><option>Simple hysterectomy</option><option>Modified radical hysterectomy (Type B)</option><option>Radical hysterectomy (Type C1)</option><option>Radical hysterectomy (Type C2)</option><option>Nerve-sparing radical hysterectomy</option><option>Trachelectomy — simple</option><option>Trachelectomy — radical</option><option>Pelvic exenteration — anterior</option><option>Pelvic exenteration — posterior</option><option>Total pelvic exenteration</option></select>
+        </div>
+        <div class="form-group"><label>Lymphadenectomy</label>
+          <select id="cx-lymph"><option>Not performed</option><option>Pelvic lymphadenectomy</option><option>Sentinel node biopsy</option><option>Pelvic + para-aortic lymphadenectomy</option></select>
+        </div>
+        <div class="form-group"><label>Pelvic Nodes Removed (n)</label><input type="text" id="cx-nodes" placeholder="e.g. 22"></div>
+        <div class="form-group"><label>Para-aortic Nodes Removed (n)</label><input type="text" id="cx-pa-nodes" placeholder="e.g. 8"></div>
+      </div>
+      <label class="mt-4 mb-2" style="display:block;">Intraoperative Findings</label>
+      <div class="check-group">
+        <span class="check-item" data-group="cx-f"><span class="ci-box">✓</span>Parametrial involvement</span>
+        <span class="check-item" data-group="cx-f"><span class="ci-box">✓</span>Uterosacral ligament involvement</span>
+        <span class="check-item" data-group="cx-f"><span class="ci-box">✓</span>Vaginal cuff adequate (≥1 cm)</span>
+        <span class="check-item" data-group="cx-f"><span class="ci-box">✓</span>Vaginal cuff close</span>
+        <span class="check-item" data-group="cx-f"><span class="ci-box">✓</span>Bladder adherent</span>
+        <span class="check-item" data-group="cx-f"><span class="ci-box">✓</span>Ureter dissected bilaterally</span>
+        <span class="check-item" data-group="cx-f"><span class="ci-box">✓</span>Ureterovesical junction dissected</span>
+        <span class="check-item" data-group="cx-f"><span class="ci-box">✓</span>Intraoperative ureteral injury — repaired</span>
+        <span class="check-item" data-group="cx-f"><span class="ci-box">✓</span>Bladder injury — repaired</span>
+        <span class="check-item" data-group="cx-f"><span class="ci-box">✓</span>Ovaries preserved</span>
+        <span class="check-item" data-group="cx-f"><span class="ci-box">✓</span>Bilateral salpingo-oophorectomy</span>
+        <span class="check-item" data-group="cx-f"><span class="ci-box">✓</span>Grossly positive pelvic nodes</span>
+        <span class="check-item" data-group="cx-f"><span class="ci-box">✓</span>Grossly positive para-aortic nodes</span>
+        <span class="check-item" data-group="cx-f"><span class="ci-box">✓</span>Tumor grossly confined to cervix</span>
+        <span class="check-item" data-group="cx-f"><span class="ci-box">✓</span>Frozen section performed</span>
+        <span class="check-item" data-group="cx-f"><span class="ci-box">✓</span>Drain placed</span>
+        <span class="check-item" data-group="cx-f"><span class="ci-box">✓</span>Estimated blood loss &lt;500 mL</span>
+        <span class="check-item" data-group="cx-f"><span class="ci-box">✓</span>Estimated blood loss 500–1000 mL</span>
+        <span class="check-item" data-group="cx-f"><span class="ci-box">✓</span>Blood transfusion required</span>
+      </div>
+      <div class="form-group mt-4"><label>Operative Notes</label><textarea id="cx-notes" placeholder="Additional operative findings..."></textarea></div>
+    </div>
+
+    <!-- UTERINE -->
+    <div class="organ-panel" id="onco-uterine">
+      <div class="form-grid">
+        <div class="form-group"><label>Histologic Type</label>
+          <select id="ut-histo"><option>Endometrioid adenocarcinoma</option><option>Serous carcinoma</option><option>Clear cell carcinoma</option><option>Carcinosarcoma (MMMT)</option><option>Mucinous carcinoma</option><option>Undifferentiated carcinoma</option><option>Leiomyosarcoma</option><option>Endometrial stromal sarcoma — low grade</option><option>Endometrial stromal sarcoma — high grade</option><option>Other</option></select>
+        </div>
+        <div class="form-group"><label>FIGO Stage</label>
+          <select id="ut-stage"><option>IA — no myoinvasion / &lt;50%</option><option>IB — ≥50% myoinvasion</option><option>II — cervical stroma</option><option>IIIA — serosa/adnexa</option><option>IIIB — vaginal/parametrial</option><option>IIIC1 — pelvic nodes</option><option>IIIC2 — para-aortic nodes</option><option>IVA — bladder/bowel mucosa</option><option>IVB — distant metastasis</option></select>
+        </div>
+        <div class="form-group"><label>Grade</label>
+          <select id="ut-grade"><option>Grade 1</option><option>Grade 2</option><option>Grade 3</option></select>
+        </div>
+        <div class="form-group"><label>Approach</label>
+          <select id="ut-approach"><option>Open (laparotomy)</option><option>Laparoscopic</option><option>Robot-assisted laparoscopic</option><option>Vaginal</option></select>
+        </div>
+        <div class="form-group"><label>Procedure</label>
+          <select id="ut-proc"><option>Total hysterectomy + BSO</option><option>Total hysterectomy + BSO + pelvic LND</option><option>Total hysterectomy + BSO + pelvic + para-aortic LND</option><option>Radical hysterectomy + BSO + pelvic LND</option><option>Staging surgery (full)</option><option>Debulking surgery</option><option>Omentectomy alone</option></select>
+        </div>
+        <div class="form-group"><label>Lymphadenectomy</label>
+          <select id="ut-lymph"><option>Not performed</option><option>Sentinel node only</option><option>Pelvic lymphadenectomy</option><option>Pelvic + para-aortic</option></select>
+        </div>
+        <div class="form-group"><label>Pelvic Nodes (n)</label><input type="text" id="ut-p-nodes" placeholder="e.g. 20"></div>
+        <div class="form-group"><label>Para-aortic Nodes (n)</label><input type="text" id="ut-pa-nodes" placeholder="e.g. 10"></div>
+      </div>
+      <label class="mt-4 mb-2" style="display:block;">Intraoperative Findings</label>
+      <div class="check-group">
+        <span class="check-item" data-group="ut-f"><span class="ci-box">✓</span>Uterus enlarged</span>
+        <span class="check-item" data-group="ut-f"><span class="ci-box">✓</span>Cervical involvement noted</span>
+        <span class="check-item" data-group="ut-f"><span class="ci-box">✓</span>Ovarian involvement</span>
+        <span class="check-item" data-group="ut-f"><span class="ci-box">✓</span>Tubal involvement</span>
+        <span class="check-item" data-group="ut-f"><span class="ci-box">✓</span>Serosal involvement</span>
+        <span class="check-item" data-group="ut-f"><span class="ci-box">✓</span>Pelvic adhesions</span>
+        <span class="check-item" data-group="ut-f"><span class="ci-box">✓</span>Omental involvement</span>
+        <span class="check-item" data-group="ut-f"><span class="ci-box">✓</span>Peritoneal implants</span>
+        <span class="check-item" data-group="ut-f"><span class="ci-box">✓</span>Ascites present</span>
+        <span class="check-item" data-group="ut-f"><span class="ci-box">✓</span>Peritoneal washings sent</span>
+        <span class="check-item" data-group="ut-f"><span class="ci-box">✓</span>Grossly positive nodes</span>
+        <span class="check-item" data-group="ut-f"><span class="ci-box">✓</span>Optimal debulking achieved</span>
+        <span class="check-item" data-group="ut-f"><span class="ci-box">✓</span>Suboptimal debulking</span>
+        <span class="check-item" data-group="ut-f"><span class="ci-box">✓</span>Frozen section performed</span>
+        <span class="check-item" data-group="ut-f"><span class="ci-box">✓</span>Drain placed</span>
+        <span class="check-item" data-group="ut-f"><span class="ci-box">✓</span>EBL &lt;500 mL</span>
+        <span class="check-item" data-group="ut-f"><span class="ci-box">✓</span>Transfusion required</span>
+      </div>
+      <div class="form-group mt-4"><label>Additional Findings</label><textarea id="ut-notes" placeholder="Describe findings..."></textarea></div>
+    </div>
+
+    <!-- OVARIAN -->
+    <div class="organ-panel" id="onco-ovarian">
+      <div class="form-grid">
+        <div class="form-group"><label>Histologic Type</label>
+          <select id="ov-histo"><option>High-grade serous carcinoma</option><option>Low-grade serous carcinoma</option><option>Endometrioid carcinoma</option><option>Clear cell carcinoma</option><option>Mucinous carcinoma</option><option>Brenner tumor malignant</option><option>Granulosa cell tumor</option><option>Dysgerminoma</option><option>Immature teratoma</option><option>Yolk sac tumor</option><option>Carcinosarcoma</option><option>Other</option></select>
+        </div>
+        <div class="form-group"><label>FIGO Stage</label>
+          <select id="ov-stage"><option>IA</option><option>IB</option><option>IC1</option><option>IC2</option><option>IC3</option><option>IIA</option><option>IIB</option><option>IIIA1i</option><option>IIIA1ii</option><option>IIIA2</option><option>IIIB</option><option>IIIC</option><option>IVA</option><option>IVB</option></select>
+        </div>
+        <div class="form-group"><label>Side</label>
+          <select id="ov-side"><option>Right ovary</option><option>Left ovary</option><option>Bilateral</option></select>
+        </div>
+        <div class="form-group"><label>Intent</label>
+          <select id="ov-intent"><option>Primary debulking surgery</option><option>Interval debulking surgery</option><option>Secondary debulking</option><option>Staging surgery</option><option>Exploratory laparotomy</option></select>
+        </div>
+        <div class="form-group"><label>Procedure</label>
+          <select id="ov-proc"><option>Total hysterectomy + BSO + omentectomy + LND</option><option>BSO + omentectomy + LND (uterus spared)</option><option>USO — unilateral (fertility sparing)</option><option>Debulking — extensive</option><option>Interval debulking</option><option>Bowel resection added</option><option>Diaphragm stripping</option><option>Splenectomy added</option><option>Peritonectomy</option></select>
+        </div>
+        <div class="form-group"><label>Residual Disease</label>
+          <select id="ov-residual"><option>R0 — no visible residual</option><option>R1 — residual ≤1 cm</option><option>R2 — residual &gt;1 cm</option></select>
+        </div>
+      </div>
+      <label class="mt-4 mb-2" style="display:block;">Intraoperative Findings</label>
+      <div class="check-group">
+        <span class="check-item" data-group="ov-f"><span class="ci-box">✓</span>Ascites present</span>
+        <span class="check-item" data-group="ov-f"><span class="ci-box">✓</span>Ascites volume &gt;500 mL</span>
+        <span class="check-item" data-group="ov-f"><span class="ci-box">✓</span>Peritoneal implants — pelvis</span>
+        <span class="check-item" data-group="ov-f"><span class="ci-box">✓</span>Peritoneal implants — abdomen</span>
+        <span class="check-item" data-group="ov-f"><span class="ci-box">✓</span>Omental cake</span>
+        <span class="check-item" data-group="ov-f"><span class="ci-box">✓</span>Diaphragm involvement</span>
+        <span class="check-item" data-group="ov-f"><span class="ci-box">✓</span>Bowel involvement</span>
+        <span class="check-item" data-group="ov-f"><span class="ci-box">✓</span>Liver surface implants</span>
+        <span class="check-item" data-group="ov-f"><span class="ci-box">✓</span>Liver parenchyma involvement</span>
+        <span class="check-item" data-group="ov-f"><span class="ci-box">✓</span>Spleen involvement</span>
+        <span class="check-item" data-group="ov-f"><span class="ci-box">✓</span>Bladder involvement</span>
+        <span class="check-item" data-group="ov-f"><span class="ci-box">✓</span>Rectosigmoid involvement</span>
+        <span class="check-item" data-group="ov-f"><span class="ci-box">✓</span>Grossly positive lymph nodes</span>
+        <span class="check-item" data-group="ov-f"><span class="ci-box">✓</span>Peritoneal washings sent</span>
+        <span class="check-item" data-group="ov-f"><span class="ci-box">✓</span>Intraoperative capsule rupture</span>
+        <span class="check-item" data-group="ov-f"><span class="ci-box">✓</span>Frozen section performed</span>
+        <span class="check-item" data-group="ov-f"><span class="ci-box">✓</span>HIPEC performed</span>
+        <span class="check-item" data-group="ov-f"><span class="ci-box">✓</span>Drain placed</span>
+        <span class="check-item" data-group="ov-f"><span class="ci-box">✓</span>Transfusion required</span>
+      </div>
+      <div class="form-group mt-4"><label>Omentum — Description</label><input type="text" id="ov-oment" placeholder="e.g. Omental cake 15x12 cm removed completely"></div>
+      <div class="form-group mt-4"><label>Additional Findings</label><textarea id="ov-notes" placeholder="Bowel resection details, anastomosis, etc."></textarea></div>
+    </div>
+
+    <!-- BREAST -->
+    <div class="organ-panel" id="onco-breast">
+      <div class="form-grid">
+        <div class="form-group"><label>Histologic Type</label>
+          <select id="br-histo"><option>Invasive ductal carcinoma (IDC)</option><option>Invasive lobular carcinoma (ILC)</option><option>Ductal carcinoma in situ (DCIS)</option><option>Lobular carcinoma in situ (LCIS)</option><option>Mucinous carcinoma</option><option>Tubular carcinoma</option><option>Medullary carcinoma</option><option>Inflammatory breast carcinoma</option><option>Triple-negative breast cancer</option><option>Other</option></select>
+        </div>
+        <div class="form-group"><label>Side</label>
+          <select id="br-side"><option>Right breast</option><option>Left breast</option><option>Bilateral</option></select>
+        </div>
+        <div class="form-group"><label>Tumor Location</label>
+          <select id="br-loc"><option>Upper outer quadrant</option><option>Upper inner quadrant</option><option>Lower outer quadrant</option><option>Lower inner quadrant</option><option>Central / retroareolar</option><option>Multiple quadrants</option></select>
+        </div>
+        <div class="form-group"><label>Tumor Size (cm)</label><input type="text" id="br-size" placeholder="e.g. 2.5 cm"></div>
+        <div class="form-group"><label>Clinical Stage</label>
+          <select id="br-stage"><option>Stage 0</option><option>Stage I</option><option>Stage IIA</option><option>Stage IIB</option><option>Stage IIIA</option><option>Stage IIIB</option><option>Stage IIIC</option><option>Stage IV</option></select>
+        </div>
+        <div class="form-group"><label>Procedure</label>
+          <select id="br-proc"><option>Lumpectomy / wide excision</option><option>Oncoplastic resection</option><option>Simple mastectomy</option><option>Skin-sparing mastectomy</option><option>Nipple-sparing mastectomy</option><option>Modified radical mastectomy</option><option>Bilateral prophylactic mastectomy</option></select>
+        </div>
+        <div class="form-group"><label>Axillary Procedure</label>
+          <select id="br-axilla"><option>None</option><option>Sentinel lymph node biopsy</option><option>Axillary lymph node dissection (ALND) — Level I-II</option><option>ALND Level I-II-III</option><option>Sentinel + ALND</option></select>
+        </div>
+        <div class="form-group"><label>Reconstruction</label>
+          <select id="br-recon"><option>None</option><option>Immediate tissue expander</option><option>Immediate implant</option><option>Latissimus dorsi flap</option><option>TRAM flap</option><option>DIEP flap</option><option>Oncoplastic local flap</option></select>
+        </div>
+      </div>
+      <label class="mt-4 mb-2" style="display:block;">Intraoperative Findings</label>
+      <div class="check-group">
+        <span class="check-item" data-group="br-f"><span class="ci-box">✓</span>Palpable tumor intraoperatively</span>
+        <span class="check-item" data-group="br-f"><span class="ci-box">✓</span>Wire / seed localisation used</span>
+        <span class="check-item" data-group="br-f"><span class="ci-box">✓</span>Intraoperative specimen X-ray performed</span>
+        <span class="check-item" data-group="br-f"><span class="ci-box">✓</span>Free margins on intraop specimen</span>
+        <span class="check-item" data-group="br-f"><span class="ci-box">✓</span>Re-excision performed</span>
+        <span class="check-item" data-group="br-f"><span class="ci-box">✓</span>Sentinel node — blue dye used</span>
+        <span class="check-item" data-group="br-f"><span class="ci-box">✓</span>Sentinel node — radiocolloid used</span>
+        <span class="check-item" data-group="br-f"><span class="ci-box">✓</span>Sentinel node negative (frozen)</span>
+        <span class="check-item" data-group="br-f"><span class="ci-box">✓</span>Sentinel node positive — ALND performed</span>
+        <span class="check-item" data-group="br-f"><span class="ci-box">✓</span>Pectoralis fascia included</span>
+        <span class="check-item" data-group="br-f"><span class="ci-box">✓</span>Skin involvement</span>
+        <span class="check-item" data-group="br-f"><span class="ci-box">✓</span>Nipple involvement</span>
+        <span class="check-item" data-group="br-f"><span class="ci-box">✓</span>Drain placed</span>
+      </div>
+      <div class="form-group mt-4"><label>Sentinel Nodes Removed (n) / Positive</label><input type="text" id="br-sn" placeholder="e.g. 3 removed, 0 positive"></div>
+      <div class="form-group mt-4"><label>Axillary Nodes Removed (n)</label><input type="text" id="br-an" placeholder="e.g. 14"></div>
+      <div class="form-group mt-4"><label>Additional Notes</label><textarea id="br-notes" placeholder="Additional findings..."></textarea></div>
+    </div>
+  </div><!-- /card-box organ -->
+
+  <!-- Anesthesia & Common -->
+  <div class="card-box">
+    <h3><span class="ico">💉</span> Anesthesia & Operative Details</h3>
+    <div class="form-grid">
+      <div class="form-group"><label>Anesthesia Type</label>
+        <select id="o-anes"><option>General anesthesia</option><option>Spinal anesthesia</option><option>Epidural anesthesia</option><option>Combined spinal-epidural</option><option>Local anesthesia with sedation</option></select>
+      </div>
+      <div class="form-group"><label>Patient Position</label>
+        <select id="o-pos"><option>Supine</option><option>Lithotomy</option><option>Trendelenburg</option><option>Modified lithotomy</option><option>Lateral decubitus — right</option><option>Lateral decubitus — left</option></select>
+      </div>
+      <div class="form-group"><label>Duration (minutes)</label><input type="number" id="o-duration" placeholder="e.g. 180"></div>
+      <div class="form-group"><label>EBL (mL)</label><input type="text" id="o-ebl" placeholder="e.g. 350"></div>
+      <div class="form-group"><label>Complications</label>
+        <select id="o-comp"><option>None</option><option>Bleeding — controlled</option><option>Ureteral injury — repaired</option><option>Bladder injury — repaired</option><option>Bowel injury — repaired</option><option>Vascular injury — controlled</option><option>Conversion to open surgery</option><option>Other — see notes</option></select>
+      </div>
+      <div class="form-group"><label>Specimen Sent for Pathology</label><input type="text" id="o-specimen" placeholder="e.g. Uterus, bilateral tubes and ovaries, pelvic LN"></div>
+    </div>
+    <div class="form-group mt-4"><label>Postoperative Plan</label><textarea id="o-postop" placeholder="e.g. ICU, discharge plan, adjuvant therapy discussed..."></textarea></div>
+  </div>
+
+  <div class="action-row">
+    <button class="btn btn-primary" onclick="previewReport('onco')">👁 Preview Report</button>
+    <button class="btn btn-outline" onclick="clearForm('onco')">🗑 Clear Form</button>
+  </div>
+</div><!-- /page-onco -->
+
+<!-- =============================== BENIGN =============================== -->
+<div class="page" id="page-benign">
+  <div class="back-bar">
+    <button class="btn-back" onclick="showPage('home')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>
+      Back to Dashboard
+    </button>
+    <span class="breadcrumb">Dashboard → <span>Benign Surgery</span></span>
+  </div>
+  <div class="section-head">
+    <span class="section-badge badge-benign">Benign Surgery</span>
+    <h2>Operative Report — Benign Gynecology</h2>
+  </div>
+
+  <div class="card-box">
+    <h3><span class="ico">👤</span> Patient Information</h3>
+    <div class="form-grid">
+      <div class="form-group"><label>Patient Full Name</label><input type="text" id="b-name" placeholder="Full name"></div>
+      <div class="form-group"><label>Date of Birth</label><input type="date" id="b-dob"></div>
+      <div class="form-group"><label>Date of Procedure</label><input type="date" id="b-date"></div>
+      <div class="form-group"><label>Surgeon</label><input type="text" id="b-surgeon" placeholder="Operating surgeon"></div>
+      <div class="form-group full"><label>Indication for Surgery</label><input type="text" id="b-indication" placeholder="e.g. Symptomatic uterine fibroids, infertility workup"></div>
+    </div>
+  </div>
+
+  <div class="card-box">
+    <h3><span class="ico">🎯</span> Procedure Category</h3>
+    <div class="organ-tabs" id="benign-tabs">
+      <button class="organ-tab benign-tab active" onclick="switchOrgan('benign','hysterectomy')">Hysterectomy</button>
+      <button class="organ-tab benign-tab" onclick="switchOrgan('benign','myomectomy')">Myomectomy</button>
+      <button class="organ-tab benign-tab" onclick="switchOrgan('benign','ovarian')">Ovarian</button>
+      <button class="organ-tab benign-tab" onclick="switchOrgan('benign','laparoscopy')">Diagnostic Lap</button>
+      <button class="organ-tab benign-tab" onclick="switchOrgan('benign','hysteroscopy')">Hysteroscopy</button>
+      <button class="organ-tab benign-tab" onclick="switchOrgan('benign','tuboperi')">Tubo-peritoneal</button>
+      <button class="organ-tab benign-tab" onclick="switchOrgan('benign','prolapse')">Prolapse / PFR</button>
+    </div>
+
+    <!-- HYSTERECTOMY -->
+    <div class="organ-panel active" id="benign-hysterectomy">
+      <div class="form-grid">
+        <div class="form-group"><label>Type of Hysterectomy</label>
+          <select id="bh-type"><option>Total abdominal hysterectomy (TAH)</option><option>Total laparoscopic hysterectomy (TLH)</option><option>Laparoscopic-assisted vaginal hysterectomy (LAVH)</option><option>Vaginal hysterectomy</option><option>Subtotal / supracervical hysterectomy</option></select>
+        </div>
+        <div class="form-group"><label>Adnexal Procedure</label>
+          <select id="bh-adnexa"><option>Ovaries and tubes conserved</option><option>Bilateral salpingectomy only</option><option>Right salpingo-oophorectomy</option><option>Left salpingo-oophorectomy</option><option>Bilateral salpingo-oophorectomy</option></select>
+        </div>
+        <div class="form-group"><label>Uterine Size (weeks)</label><input type="text" id="bh-size" placeholder="e.g. 14 weeks / 300 g"></div>
+        <div class="form-group"><label>Uterine Weight (grams)</label><input type="text" id="bh-weight" placeholder="e.g. 320 g"></div>
+      </div>
+      <label class="mt-4 mb-2" style="display:block;">Intraoperative Findings</label>
+      <div class="check-group">
+        <span class="check-item" data-group="bh-f"><span class="ci-box">✓</span>Multiple fibroids</span>
+        <span class="check-item" data-group="bh-f"><span class="ci-box">✓</span>Dominant intramural fibroid</span>
+        <span class="check-item" data-group="bh-f"><span class="ci-box">✓</span>Subserosal fibroids</span>
+        <span class="check-item" data-group="bh-f"><span class="ci-box">✓</span>Cervical fibroid</span>
+        <span class="check-item" data-group="bh-f"><span class="ci-box">✓</span>Adenomyosis — focal</span>
+        <span class="check-item" data-group="bh-f"><span class="ci-box">✓</span>Adenomyosis — diffuse</span>
+        <span class="check-item" data-group="bh-f"><span class="ci-box">✓</span>Endometriosis — minimal</span>
+        <span class="check-item" data-group="bh-f"><span class="ci-box">✓</span>Endometriosis — moderate</span>
+        <span class="check-item" data-group="bh-f"><span class="ci-box">✓</span>Endometriosis — severe</span>
+        <span class="check-item" data-group="bh-f"><span class="ci-box">✓</span>Dense pelvic adhesions</span>
+        <span class="check-item" data-group="bh-f"><span class="ci-box">✓</span>Oophorocystectomy performed</span>
+        <span class="check-item" data-group="bh-f"><span class="ci-box">✓</span>Bladder mobilization required</span>
+        <span class="check-item" data-group="bh-f"><span class="ci-box">✓</span>Ureter identified bilaterally</span>
+        <span class="check-item" data-group="bh-f"><span class="ci-box">✓</span>Drain placed</span>
+        <span class="check-item" data-group="bh-f"><span class="ci-box">✓</span>Vault suspended — McCall culdoplasty</span>
+      </div>
+      <div class="form-group mt-4"><label>Additional Notes</label><textarea id="bh-notes" placeholder="Describe additional findings..."></textarea></div>
+    </div>
+
+    <!-- MYOMECTOMY -->
+    <div class="organ-panel" id="benign-myomectomy">
+      <div class="form-grid">
+        <div class="form-group"><label>Approach</label>
+          <select id="bm-approach"><option>Open myomectomy (laparotomy)</option><option>Laparoscopic myomectomy</option><option>Hysteroscopic myomectomy</option><option>Robotic myomectomy</option></select>
+        </div>
+        <div class="form-group"><label>Number of Fibroids Removed</label><input type="number" id="bm-number" placeholder="e.g. 5"></div>
+        <div class="form-group"><label>Largest Fibroid Size (cm)</label><input type="text" id="bm-size" placeholder="e.g. 8 cm"></div>
+        <div class="form-group"><label>Total Specimen Weight (g)</label><input type="text" id="bm-weight" placeholder="e.g. 450 g"></div>
+      </div>
+      <label class="mt-4 mb-2" style="display:block;">Fibroid Types Removed</label>
+      <div class="check-group">
+        <span class="check-item" data-group="bm-f"><span class="ci-box">✓</span>Intramural</span>
+        <span class="check-item" data-group="bm-f"><span class="ci-box">✓</span>Subserosal</span>
+        <span class="check-item" data-group="bm-f"><span class="ci-box">✓</span>Submucosal — FIGO type 0</span>
+        <span class="check-item" data-group="bm-f"><span class="ci-box">✓</span>Submucosal — FIGO type 1</span>
+        <span class="check-item" data-group="bm-f"><span class="ci-box">✓</span>Submucosal — FIGO type 2</span>
+        <span class="check-item" data-group="bm-f"><span class="ci-box">✓</span>Cervical fibroid</span>
+        <span class="check-item" data-group="bm-f"><span class="ci-box">✓</span>Broad ligament fibroid</span>
+        <span class="check-item" data-group="bm-f"><span class="ci-box">✓</span>Pedunculated</span>
+      </div>
+      <label class="mt-4 mb-2" style="display:block;">Operative Details</label>
+      <div class="check-group">
+        <span class="check-item" data-group="bm-f2"><span class="ci-box">✓</span>Uterine cavity entered</span>
+        <span class="check-item" data-group="bm-f2"><span class="ci-box">✓</span>Uterine cavity not entered</span>
+        <span class="check-item" data-group="bm-f2"><span class="ci-box">✓</span>Vasopressin injection used</span>
+        <span class="check-item" data-group="bm-f2"><span class="ci-box">✓</span>Tourniquet applied</span>
+        <span class="check-item" data-group="bm-f2"><span class="ci-box">✓</span>Multiple uterine incisions</span>
+        <span class="check-item" data-group="bm-f2"><span class="ci-box">✓</span>Adhesion barrier applied</span>
+        <span class="check-item" data-group="bm-f2"><span class="ci-box">✓</span>Drain placed</span>
+      </div>
+      <div class="form-group mt-4"><label>Uterine Closure</label>
+        <select id="bm-closure"><option>2-layer closure</option><option>3-layer closure</option><option>Running suture</option><option>Interrupted sutures</option></select>
+      </div>
+      <div class="form-group mt-4"><label>Notes</label><textarea id="bm-notes" placeholder="Location details, capsule integrity, additional findings..."></textarea></div>
+    </div>
+
+    <!-- OVARIAN -->
+    <div class="organ-panel" id="benign-ovarian">
+      <div class="form-grid">
+        <div class="form-group"><label>Procedure</label>
+          <select id="bo-proc"><option>Laparoscopic cystectomy</option><option>Open cystectomy</option><option>Laparoscopic oophorectomy</option><option>Open oophorectomy</option><option>Laparoscopic salpingo-oophorectomy</option><option>Open salpingo-oophorectomy</option><option>Ovarian drilling</option><option>Detorsion of ovary</option></select>
+        </div>
+        <div class="form-group"><label>Side</label>
+          <select id="bo-side"><option>Right</option><option>Left</option><option>Bilateral</option></select>
+        </div>
+        <div class="form-group"><label>Cyst Size (cm)</label><input type="text" id="bo-size" placeholder="e.g. 7 cm"></div>
+        <div class="form-group"><label>Cyst Type</label>
+          <select id="bo-type"><option>Endometrioma</option><option>Dermoid cyst (mature teratoma)</option><option>Simple functional cyst</option><option>Serous cystadenoma</option><option>Mucinous cystadenoma</option><option>Hydrosalpinx</option><option>Paraovarian cyst</label><option>Other</option></select>
+        </div>
+      </div>
+      <label class="mt-4 mb-2" style="display:block;">Findings</label>
+      <div class="check-group">
+        <span class="check-item" data-group="bo-f"><span class="ci-box">✓</span>Cyst intact at removal</span>
+        <span class="check-item" data-group="bo-f"><span class="ci-box">✓</span>Intraoperative rupture — contents evacuated</span>
+        <span class="check-item" data-group="bo-f"><span class="ci-box">✓</span>Dense adhesions to posterior leaf broad ligament</span>
+        <span class="check-item" data-group="bo-f"><span class="ci-box">✓</span>Adhesions to tube</span>
+        <span class="check-item" data-group="bo-f"><span class="ci-box">✓</span>Adhesions to bowel</span>
+        <span class="check-item" data-group="bo-f"><span class="ci-box">✓</span>Endometriosis implants on peritoneum</span>
+        <span class="check-item" data-group="bo-f"><span class="ci-box">✓</span>Chocolate cyst contents</span>
+        <span class="check-item" data-group="bo-f"><span class="ci-box">✓</span>Sebaceous / hair contents (dermoid)</span>
+        <span class="check-item" data-group="bo-f"><span class="ci-box">✓</span>Ovarian torsion confirmed</span>
+        <span class="check-item" data-group="bo-f"><span class="ci-box">✓</span>Ovary viable post-detorsion</span>
+        <span class="check-item" data-group="bo-f"><span class="ci-box">✓</span>Specimen sent for frozen section</span>
+        <span class="check-item" data-group="bo-f"><span class="ci-box">✓</span>Normal remaining ovarian tissue</span>
+        <span class="check-item" data-group="bo-f"><span class="ci-box">✓</span>Irrigation and washout performed</span>
+      </div>
+      <div class="form-group mt-4"><label>Notes</label><textarea id="bo-notes" placeholder="Cyst content, associated findings..."></textarea></div>
+    </div>
+
+    <!-- DIAGNOSTIC LAPAROSCOPY -->
+    <div class="organ-panel" id="benign-laparoscopy">
+      <div class="form-group mb-2"><label>Primary Indication</label>
+        <select id="bl-ind"><option>Infertility workup</option><option>Chronic pelvic pain</option><option>Suspected endometriosis</option><option>Pelvic inflammatory disease evaluation</option><option>Adnexal mass evaluation</option><option>Second-look after treatment</option></select>
+      </div>
+      <label class="mt-4 mb-2" style="display:block;">Findings</label>
+      <div class="check-group">
+        <span class="check-item" data-group="bl-f"><span class="ci-box">✓</span>Normal pelvis</span>
+        <span class="check-item" data-group="bl-f"><span class="ci-box">✓</span>Endometriosis — AFS Stage I (minimal)</span>
+        <span class="check-item" data-group="bl-f"><span class="ci-box">✓</span>Endometriosis — AFS Stage II (mild)</span>
+        <span class="check-item" data-group="bl-f"><span class="ci-box">✓</span>Endometriosis — AFS Stage III (moderate)</span>
+        <span class="check-item" data-group="bl-f"><span class="ci-box">✓</span>Endometriosis — AFS Stage IV (severe)</span>
+        <span class="check-item" data-group="bl-f"><span class="ci-box">✓</span>Endometriosis implants ablated</span>
+        <span class="check-item" data-group="bl-f"><span class="ci-box">✓</span>Peritubal adhesions — right</span>
+        <span class="check-item" data-group="bl-f"><span class="ci-box">✓</span>Peritubal adhesions — left</span>
+        <span class="check-item" data-group="bl-f"><span class="ci-box">✓</span>Periovarian adhesions — right</span>
+        <span class="check-item" data-group="bl-f"><span class="ci-box">✓</span>Periovarian adhesions — left</span>
+        <span class="check-item" data-group="bl-f"><span class="ci-box">✓</span>Tubal occlusion — right (confirmed)</span>
+        <span class="check-item" data-group="bl-f"><span class="ci-box">✓</span>Tubal occlusion — left (confirmed)</span>
+        <span class="check-item" data-group="bl-f"><span class="ci-box">✓</span>Bilateral tubal patency confirmed (chromopertubation)</span>
+        <span class="check-item" data-group="bl-f"><span class="ci-box">✓</span>Hydrosalpinx — right</span>
+        <span class="check-item" data-group="bl-f"><span class="ci-box">✓</span>Hydrosalpinx — left</span>
+        <span class="check-item" data-group="bl-f"><span class="ci-box">✓</span>Pyosalpinx</span>
+        <span class="check-item" data-group="bl-f"><span class="ci-box">✓</span>Pelvic inflammatory disease confirmed</span>
+        <span class="check-item" data-group="bl-f"><span class="ci-box">✓</span>Adhesiolysis performed</span>
+        <span class="check-item" data-group="bl-f"><span class="ci-box">✓</span>Fibroid noted on uterine surface</span>
+      </div>
+      <div class="form-group mt-4">
+        <label>Chromopertubation</label>
+        <select id="bl-chromo"><option>Not performed</option><option>Right tube patent — spill confirmed</option><option>Left tube patent — spill confirmed</option><option>Bilateral patent — spill confirmed</option><option>Right tube blocked</option><option>Left tube blocked</option><option>Bilateral blocks</option></select>
+      </div>
+      <div class="form-group mt-4"><label>Notes</label><textarea id="bl-notes" placeholder="Describe findings in detail..."></textarea></div>
+    </div>
+
+    <!-- HYSTEROSCOPY -->
+    <div class="organ-panel" id="benign-hysteroscopy">
+      <div class="form-group mb-2"><label>Type</label>
+        <select id="bhs-type"><option>Diagnostic hysteroscopy</option><option>Operative hysteroscopy</option><option>Office hysteroscopy</option></select>
+      </div>
+      <div class="form-group mb-2"><label>Distension Medium</label>
+        <select id="bhs-medium"><option>Normal saline</option><option>Glycine 1.5%</option><option>Sorbitol 5%</option><option>CO2</option></select>
+      </div>
+      <label class="mt-4 mb-2" style="display:block;">Cervical / Uterine Cavity Findings</label>
+      <div class="check-group">
+        <span class="check-item" data-group="bhs-f"><span class="ci-box">✓</span>Normal uterine cavity</span>
+        <span class="check-item" data-group="bhs-f"><span class="ci-box">✓</span>Submucosal fibroid — Type 0</span>
+        <span class="check-item" data-group="bhs-f"><span class="ci-box">✓</span>Submucosal fibroid — Type 1</span>
+        <span class="check-item" data-group="bhs-f"><span class="ci-box">✓</span>Submucosal fibroid — Type 2</span>
+        <span class="check-item" data-group="bhs-f"><span class="ci-box">✓</span>Endometrial polyp</span>
+        <span class="check-item" data-group="bhs-f"><span class="ci-box">✓</span>Multiple polyps</span>
+        <span class="check-item" data-group="bhs-f"><span class="ci-box">✓</span>Uterine septum — complete</span>
+        <span class="check-item" data-group="bhs-f"><span class="ci-box">✓</span>Uterine septum — partial</span>
+        <span class="check-item" data-group="bhs-f"><span class="ci-box">✓</span>Intrauterine adhesions — mild</span>
+        <span class="check-item" data-group="bhs-f"><span class="ci-box">✓</span>Intrauterine adhesions — moderate</span>
+        <span class="check-item" data-group="bhs-f"><span class="ci-box">✓</span>Intrauterine adhesions — severe (Asherman)</span>
+        <span class="check-item" data-group="bhs-f"><span class="ci-box">✓</span>Bicornuate / arcuate cavity</span>
+        <span class="check-item" data-group="bhs-f"><span class="ci-box">✓</span>Atrophic endometrium</span>
+        <span class="check-item" data-group="bhs-f"><span class="ci-box">✓</span>Irregular endometrium — biopsy taken</span>
+        <span class="check-item" data-group="bhs-f"><span class="ci-box">✓</span>Retained products of conception</span>
+        <span class="check-item" data-group="bhs-f"><span class="ci-box">✓</span>Tubal ostia — bilateral visualized</span>
+      </div>
+      <label class="mt-4 mb-2" style="display:block;">Procedures Performed</label>
+      <div class="check-group">
+        <span class="check-item" data-group="bhs-p"><span class="ci-box">✓</span>Polypectomy</span>
+        <span class="check-item" data-group="bhs-p"><span class="ci-box">✓</span>Myomectomy (resectoscope)</span>
+        <span class="check-item" data-group="bhs-p"><span class="ci-box">✓</span>Septum resection</span>
+        <span class="check-item" data-group="bhs-p"><span class="ci-box">✓</span>Adhesiolysis</span>
+        <span class="check-item" data-group="bhs-p"><span class="ci-box">✓</span>Endometrial ablation</span>
+        <span class="check-item" data-group="bhs-p"><span class="ci-box">✓</span>RPOC removal</span>
+        <span class="check-item" data-group="bhs-p"><span class="ci-box">✓</span>IUD removal</span>
+        <span class="check-item" data-group="bhs-p"><span class="ci-box">✓</span>Biopsy taken</span>
+      </div>
+      <div class="form-group mt-4"><label>Notes</label><textarea id="bhs-notes" placeholder="Fluid balance, complications, details..."></textarea></div>
+    </div>
+
+    <!-- TUBOPERIOTNEAL -->
+    <div class="organ-panel" id="benign-tuboperi">
+      <div class="form-group mb-2"><label>Procedure</label>
+        <select id="bt-proc"><option>Salpingectomy — right</option><option>Salpingectomy — left</option><option>Bilateral salpingectomy</option><option>Salpingostomy (ectopic)</option><option>Salpingotomy (ectopic)</option><option>Tubal reanastomosis</option><option>Fimbrioplasty</option><option>Neosalpingostomy</option><option>Tubal ligation</option></select>
+      </div>
+      <label class="mt-4 mb-2" style="display:block;">Findings</label>
+      <div class="check-group">
+        <span class="check-item" data-group="bt-f"><span class="ci-box">✓</span>Ectopic pregnancy confirmed</span>
+        <span class="check-item" data-group="bt-f"><span class="ci-box">✓</span>Ectopic — ampullary location</span>
+        <span class="check-item" data-group="bt-f"><span class="ci-box">✓</span>Ectopic — isthmic location</span>
+        <span class="check-item" data-group="bt-f"><span class="ci-box">✓</span>Ectopic — fimbrial location</span>
+        <span class="check-item" data-group="bt-f"><span class="ci-box">✓</span>Ruptured ectopic</span>
+        <span class="check-item" data-group="bt-f"><span class="ci-box">✓</span>Hemoperitoneum</span>
+        <span class="check-item" data-group="bt-f"><span class="ci-box">✓</span>Contralateral tube normal</span>
+        <span class="check-item" data-group="bt-f"><span class="ci-box">✓</span>Hydrosalpinx confirmed</span>
+        <span class="check-item" data-group="bt-f"><span class="ci-box">✓</span>Tubal adhesions</span>
+      </div>
+      <div class="form-group mt-4"><label>Notes</label><textarea id="bt-notes" placeholder="Volume of hemoperitoneum, operative details..."></textarea></div>
+    </div>
+
+    <!-- PROLAPSE -->
+    <div class="organ-panel" id="benign-prolapse">
+      <div class="form-group mb-2"><label>Degree of Prolapse (POP-Q)</label>
+        <select id="bp-degree"><option>Stage I</option><option>Stage II</option><option>Stage III</option><option>Stage IV</option></select>
+      </div>
+      <div class="form-group mb-2"><label>Compartments Involved</label></div>
+      <div class="check-group mb-2">
+        <span class="check-item" data-group="bp-comp"><span class="ci-box">✓</span>Anterior compartment (cystocele)</span>
+        <span class="check-item" data-group="bp-comp"><span class="ci-box">✓</span>Posterior compartment (rectocele)</span>
+        <span class="check-item" data-group="bp-comp"><span class="ci-box">✓</span>Apical compartment (vault / uterine)</span>
+        <span class="check-item" data-group="bp-comp"><span class="ci-box">✓</span>Enterocele</span>
+      </div>
+      <label class="mt-4 mb-2" style="display:block;">Procedures Performed</label>
+      <div class="check-group">
+        <span class="check-item" data-group="bp-proc"><span class="ci-box">✓</span>Anterior colporrhaphy</span>
+        <span class="check-item" data-group="bp-proc"><span class="ci-box">✓</span>Posterior colporrhaphy</span>
+        <span class="check-item" data-group="bp-proc"><span class="ci-box">✓</span>Sacrocolpopexy (open)</span>
+        <span class="check-item" data-group="bp-proc"><span class="ci-box">✓</span>Laparoscopic sacrocolpopexy</span>
+        <span class="check-item" data-group="bp-proc"><span class="ci-box">✓</span>Sacrospinous ligament fixation</span>
+        <span class="check-item" data-group="bp-proc"><span class="ci-box">✓</span>Uterosacral ligament suspension</span>
+        <span class="check-item" data-group="bp-proc"><span class="ci-box">✓</span>McCall culdoplasty</span>
+        <span class="check-item" data-group="bp-proc"><span class="ci-box">✓</span>Perineorrhaphy</span>
+        <span class="check-item" data-group="bp-proc"><span class="ci-box">✓</span>TVT / mid-urethral sling (stress incontinence)</span>
+        <span class="check-item" data-group="bp-proc"><span class="ci-box">✓</span>Mesh used</span>
+        <span class="check-item" data-group="bp-proc"><span class="ci-box">✓</span>No mesh — native tissue repair</span>
+      </div>
+      <div class="form-group mt-4"><label>Notes</label><textarea id="bp-notes" placeholder="Cystoscopy performed, ureter jets confirmed, etc."></textarea></div>
+    </div>
+  </div>
+
+  <!-- Anesthesia -->
+  <div class="card-box">
+    <h3><span class="ico">💉</span> Anesthesia & Operative Details</h3>
+    <div class="form-grid">
+      <div class="form-group"><label>Anesthesia Type</label>
+        <select id="b-anes"><option>General anesthesia</option><option>Spinal</option><option>Epidural</option><option>Combined spinal-epidural</option><option>Local + sedation</option></select>
+      </div>
+      <div class="form-group"><label>Patient Position</label>
+        <select id="b-pos"><option>Supine</option><option>Lithotomy</option><option>Trendelenburg</option><option>Modified lithotomy</option></select>
+      </div>
+      <div class="form-group"><label>Duration (minutes)</label><input type="number" id="b-duration" placeholder="e.g. 75"></div>
+      <div class="form-group"><label>EBL (mL)</label><input type="text" id="b-ebl" placeholder="e.g. 150"></div>
+      <div class="form-group"><label>Complications</label>
+        <select id="b-comp"><option>None</option><option>Bleeding — controlled</option><option>Ureteral injury — repaired</option><option>Bladder injury — repaired</option><option>Bowel injury — repaired</option><option>Conversion to open surgery</option><option>Other — see notes</option></select>
+      </div>
+      <div class="form-group"><label>Specimen for Pathology</label><input type="text" id="b-specimen" placeholder="e.g. Fibroid, ovarian cyst, polyp"></div>
+    </div>
+    <div class="form-group mt-4"><label>Postoperative Plan</label><textarea id="b-postop" placeholder="e.g. Day surgery, admission, follow-up..."></textarea></div>
+  </div>
+
+  <div class="action-row">
+    <button class="btn btn-primary" onclick="previewReport('benign')">👁 Preview Report</button>
+    <button class="btn btn-outline" onclick="clearForm('benign')">🗑 Clear Form</button>
+  </div>
+</div><!-- /page-benign -->
+
+<!-- =============================== REPRODUCTION =============================== -->
+<div class="page" id="page-repro">
+  <div class="back-bar">
+    <button class="btn-back" onclick="showPage('home')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>
+      Back to Dashboard
+    </button>
+    <span class="breadcrumb">Dashboard → <span>Assisted Reproduction</span></span>
+  </div>
+  <div class="section-head">
+    <span class="section-badge badge-repro">Assisted Reproduction</span>
+    <h2>ART Record</h2>
+  </div>
+
+  <!-- Patient Info -->
+  <div class="card-box">
+    <h3><span class="ico">👤</span> Patient / Couple Information</h3>
+    <div class="form-grid">
+      <div class="form-group"><label>Patient (Female) Name</label><input type="text" id="r-fname" placeholder="Full name"></div>
+      <div class="form-group"><label>Female Date of Birth</label><input type="date" id="r-fdob"></div>
+      <div class="form-group"><label>Partner (Male) Name</label><input type="text" id="r-mname" placeholder="Full name"></div>
+      <div class="form-group"><label>Male Date of Birth</label><input type="date" id="r-mdob"></div>
+      <div class="form-group"><label>Date of Record / Cycle Start</label><input type="date" id="r-date"></div>
+      <div class="form-group"><label>Procedure Type</label>
+        <select id="r-proc"><option>IUI — Intrauterine insemination</option><option>IVF — Standard</option><option>IVF-ICSI</option><option>IVF-IMSI</option><option>Frozen embryo transfer (FET)</option><option>Egg freezing (oocyte cryopreservation)</option><option>Donor egg cycle</option><option>Sperm donation cycle</option></select>
+      </div>
+      <div class="form-group full"><label>Indication / Diagnosis</label><input type="text" id="r-indication" placeholder="e.g. Unexplained infertility, male factor, PCOS, diminished ovarian reserve"></div>
+    </div>
+  </div>
+
+  <!-- Tabs -->
+  <div class="repro-tabs">
+    <button class="repro-tab active" onclick="switchReproTab('female')">🧬 Female Workup</button>
+    <button class="repro-tab" onclick="switchReproTab('male')">♂ Semen Analysis</button>
+    <button class="repro-tab" onclick="switchReproTab('stimulation')">💊 Stimulation</button>
+    <button class="repro-tab" onclick="switchReproTab('retrieval')">🥚 Retrieval & Transfer</button>
+  </div>
+
+  <!-- FEMALE WORKUP -->
+  <div class="organ-panel active" id="repro-female">
+    <div class="card-box">
+      <h3><span class="ico">🩸</span> Female Hormonal Profile</h3>
+      <div class="form-grid-3">
+        <div class="form-group"><label>FSH (mIU/mL)</label><input type="text" id="f-fsh" placeholder="e.g. 7.2"></div>
+        <div class="form-group"><label>LH (mIU/mL)</label><input type="text" id="f-lh" placeholder="e.g. 5.1"></div>
+        <div class="form-group"><label>Estradiol E2 (pg/mL)</label><input type="text" id="f-e2" placeholder="e.g. 42"></div>
+        <div class="form-group"><label>Progesterone (ng/mL)</label><input type="text" id="f-prog" placeholder="e.g. 0.8"></div>
+        <div class="form-group"><label>Prolactin (ng/mL)</label><input type="text" id="f-prl" placeholder="e.g. 12"></div>
+        <div class="form-group"><label>AMH (ng/mL)</label><input type="text" id="f-amh" placeholder="e.g. 2.1"></div>
+        <div class="form-group"><label>TSH (mIU/L)</label><input type="text" id="f-tsh" placeholder="e.g. 1.8"></div>
+        <div class="form-group"><label>Free T4</label><input type="text" id="f-ft4" placeholder="e.g. 1.2"></div>
+        <div class="form-group"><label>Testosterone (ng/dL)</label><input type="text" id="f-testo" placeholder="e.g. 30"></div>
+        <div class="form-group"><label>DHEA-S (μg/dL)</label><input type="text" id="f-dheas" placeholder="e.g. 140"></div>
+        <div class="form-group"><label>Fasting Insulin (μU/mL)</label><input type="text" id="f-insulin" placeholder="e.g. 10"></div>
+        <div class="form-group"><label>Fasting Glucose (mg/dL)</label><input type="text" id="f-glucose" placeholder="e.g. 85"></div>
+        <div class="form-group"><label>HOMA-IR</label><input type="text" id="f-homa" placeholder="Auto or manual"></div>
+        <div class="form-group"><label>Vitamin D (ng/mL)</label><input type="text" id="f-vitd" placeholder="e.g. 28"></div>
+        <div class="form-group"><label>CBC — Hemoglobin (g/dL)</label><input type="text" id="f-hgb" placeholder="e.g. 12.5"></div>
+      </div>
+    </div>
+    <div class="card-box">
+      <h3><span class="ico">🔬</span> Antral Follicle Count (AFC) & Ultrasound</h3>
+      <div class="form-grid">
+        <div class="form-group"><label>AFC — Right Ovary</label><input type="number" id="f-afc-r" placeholder="e.g. 7"></div>
+        <div class="form-group"><label>AFC — Left Ovary</label><input type="number" id="f-afc-l" placeholder="e.g. 6"></div>
+        <div class="form-group"><label>Total AFC</label><input type="number" id="f-afc-total" placeholder="Auto or manual"></div>
+        <div class="form-group"><label>Right Ovarian Volume (mL)</label><input type="text" id="f-rov" placeholder="e.g. 8.5"></div>
+        <div class="form-group"><label>Left Ovarian Volume (mL)</label><input type="text" id="f-lov" placeholder="e.g. 7.2"></div>
+        <div class="form-group"><label>Uterine Cavity</label>
+          <select id="f-uterus"><option>Normal</option><option>Fibroid (submucosal)</option><option>Polyp</option><option>Septum</option><option>Adhesions</option><option>Adenomyosis</option><option>Arcuate</option></select>
+        </div>
+        <div class="form-group"><label>Endometrial Thickness (mm)</label><input type="text" id="f-endo" placeholder="e.g. 8 mm"></div>
+        <div class="form-group"><label>Endometrial Pattern</label>
+          <select id="f-pattern"><option>Trilaminar (proliferative)</option><option>Secretory</option><option>Homogeneous / atrophic</option><option>Irregular</option></select>
+        </div>
+      </div>
+      <label class="mt-4 mb-2" style="display:block;">Additional Findings</label>
+      <div class="check-group">
+        <span class="check-item" data-group="f-us"><span class="ci-box">✓</span>Hydrosalpinx noted</span>
+        <span class="check-item" data-group="f-us"><span class="ci-box">✓</span>Endometrioma — right</span>
+        <span class="check-item" data-group="f-us"><span class="ci-box">✓</span>Endometrioma — left</span>
+        <span class="check-item" data-group="f-us"><span class="ci-box">✓</span>Myoma noted</span>
+        <span class="check-item" data-group="f-us"><span class="ci-box">✓</span>PCOS morphology</span>
+      </div>
+    </div>
+    <div class="card-box">
+      <h3><span class="ico">🧪</span> Infectious / Genetic Screening — Female</h3>
+      <div class="form-grid">
+        <div class="form-group"><label>Rubella IgG</label>
+          <select id="f-rubella"><option>Immune</option><option>Not immune</option><option>Not tested</option></select>
+        </div>
+        <div class="form-group"><label>Hepatitis B (HBsAg)</label>
+          <select id="f-hbv"><option>Negative</option><option>Positive</option><option>Not tested</option></select>
+        </div>
+        <div class="form-group"><label>Hepatitis C (Anti-HCV)</label>
+          <select id="f-hcv"><option>Negative</option><option>Positive</option><option>Not tested</option></select>
+        </div>
+        <div class="form-group"><label>HIV</label>
+          <select id="f-hiv"><option>Negative</option><option>Positive</option><option>Not tested</option></select>
+        </div>
+        <div class="form-group"><label>Karyotype</label><input type="text" id="f-karyo" placeholder="e.g. 46,XX"></div>
+        <div class="form-group"><label>Thrombophilia Screen</label>
+          <select id="f-thrombo"><option>Not done</option><option>Normal</option><option>Factor V Leiden +</option><option>MTHFR mutation</option><option>Prothrombin mutation</option><option>Antiphospholipid antibodies +</option><option>Protein C/S deficiency</option></select>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MALE WORKUP -->
+  <div class="organ-panel" id="repro-male">
+    <div class="card-box">
+      <h3><span class="ico">♂</span> Semen Analysis (WHO 2021 Reference)</h3>
+      <div class="form-grid">
+        <div class="form-group"><label>Volume (mL)</label><input type="text" id="m-vol" placeholder="Normal ≥1.4 mL"></div>
+        <div class="form-group"><label>pH</label><input type="text" id="m-ph" placeholder="Normal ≥7.2"></div>
+        <div class="form-group"><label>Concentration (×10⁶/mL)</label><input type="text" id="m-conc" placeholder="Normal ≥16"></div>
+        <div class="form-group"><label>Total Count (×10⁶)</label><input type="text" id="m-total" placeholder="Normal ≥39"></div>
+        <div class="form-group"><label>Total Motility % (PR+NP)</label><input type="text" id="m-motility" placeholder="Normal ≥42%"></div>
+        <div class="form-group"><label>Progressive Motility % (PR)</label><input type="text" id="m-pr" placeholder="Normal ≥30%"></div>
+        <div class="form-group"><label>Normal Morphology % (Strict Kruger)</label><input type="text" id="m-morpho" placeholder="Normal ≥4%"></div>
+        <div class="form-group"><label>Vitality % (live)</label><input type="text" id="m-vitality" placeholder="Normal ≥54%"></div>
+        <div class="form-group"><label>Liquefaction Time</label>
+          <select id="m-liq"><option>&lt;30 minutes (normal)</option><option>30–60 minutes</option><option>&gt;60 minutes (abnormal)</option></select>
+        </div>
+        <div class="form-group"><label>WBC (×10⁶/mL)</label><input type="text" id="m-wbc" placeholder="Normal &lt;1.0"></div>
+        <div class="form-group"><label>Round Cells (×10⁶/mL)</label><input type="text" id="m-rc" placeholder="e.g. 0.5"></div>
+        <div class="form-group"><label>MAR Test / Anti-sperm Antibodies</label>
+          <select id="m-mar"><option>Negative</option><option>Positive &gt;50%</option><option>Not done</option></select>
+        </div>
+      </div>
+      <label class="mt-4 mb-2" style="display:block;">Classification</label>
+      <div class="check-group">
+        <span class="check-item" data-group="m-class"><span class="ci-box">✓</span>Normozoospermia</span>
+        <span class="check-item" data-group="m-class"><span class="ci-box">✓</span>Oligozoospermia</span>
+        <span class="check-item" data-group="m-class"><span class="ci-box">✓</span>Severe oligozoospermia</span>
+        <span class="check-item" data-group="m-class"><span class="ci-box">✓</span>Asthenozoospermia</span>
+        <span class="check-item" data-group="m-class"><span class="ci-box">✓</span>Teratozoospermia</span>
+        <span class="check-item" data-group="m-class"><span class="ci-box">✓</span>OAT syndrome</span>
+        <span class="check-item" data-group="m-class"><span class="ci-box">✓</span>Azoospermia</span>
+        <span class="check-item" data-group="m-class"><span class="ci-box">✓</span>Cryptozoospermia</span>
+        <span class="check-item" data-group="m-class"><span class="ci-box">✓</span>Leukocytospermia</span>
+        <span class="check-item" data-group="m-class"><span class="ci-box">✓</span>Necrozoospermia</span>
+      </div>
+    </div>
+    <div class="card-box">
+      <h3><span class="ico">🧪</span> Male Hormonal & Genetic</h3>
+      <div class="form-grid">
+        <div class="form-group"><label>FSH (mIU/mL)</label><input type="text" id="m-fsh" placeholder="e.g. 5.2"></div>
+        <div class="form-group"><label>LH (mIU/mL)</label><input type="text" id="m-lh" placeholder="e.g. 3.8"></div>
+        <div class="form-group"><label>Testosterone (ng/dL)</label><input type="text" id="m-testo" placeholder="e.g. 450"></div>
+        <div class="form-group"><label>Prolactin (ng/mL)</label><input type="text" id="m-prl" placeholder="e.g. 8"></div>
+        <div class="form-group"><label>Karyotype</label><input type="text" id="m-karyo" placeholder="e.g. 46,XY"></div>
+        <div class="form-group"><label>AZF deletion</label>
+          <select id="m-azf"><option>Not done</option><option>Negative</option><option>AZFa deletion</option><option>AZFb deletion</option><option>AZFc deletion</option><option>AZFbc deletion</option></select>
+        </div>
+        <div class="form-group"><label>Hepatitis B (HBsAg)</label>
+          <select id="m-hbv"><option>Negative</option><option>Positive</option><option>Not tested</option></select>
+        </div>
+        <div class="form-group"><label>HIV</label>
+          <select id="m-hiv"><option>Negative</option><option>Positive</option><option>Not tested</option></select>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- STIMULATION -->
+  <div class="organ-panel" id="repro-stimulation">
+    <div class="card-box">
+      <h3><span class="ico">💊</span> Stimulation Protocol</h3>
+      <div class="form-grid">
+        <div class="form-group"><label>Protocol Type</label>
+          <select id="s-protocol"><option>GnRH Antagonist (short)</option><option>GnRH Agonist Long Protocol</option><option>GnRH Agonist Short (flare)</option><option>Mini-IVF / Minimal stimulation</option><option>Natural cycle IVF</option><option>Modified natural cycle</option><option>Progestin-primed protocol (PPOS)</option><option>Random start protocol</option><option>Dual trigger</option></select>
+        </div>
+        <div class="form-group"><label>Starting FSH Dose (IU)</label><input type="text" id="s-start-dose" placeholder="e.g. 225 IU"></div>
+        <div class="form-group"><label>Down-regulation / Suppression Agent</label>
+          <select id="s-downreg"><option>None (antagonist protocol)</option><option>Leuprolide acetate (Lupron)</option><option>Triptorelin (Decapeptyl)</option><option>Buserelin (Suprefact)</option><option>Nafarelin (Synarel)</option><option>Cetrorelix (Cetrotide)</option><option>Ganirelix (Orgalutran)</option></select>
+        </div>
+        <div class="form-group"><label>Antagonist Start Day</label><input type="text" id="s-antag-day" placeholder="e.g. Day 5 or follicle ≥14mm"></div>
+      </div>
+    </div>
+
+    <div class="card-box">
+      <h3><span class="ico">📅</span> FSH Administration Log</h3>
+      <div class="sub-label">Add each FSH medication used with date and dose</div>
+      <div id="fsh-log"></div>
+      <button class="add-row-btn" onclick="addFshRow()">+ Add FSH Entry</button>
+    </div>
+
+    <div class="card-box">
+      <h3><span class="ico">📈</span> Monitoring & Trigger</h3>
+      <div class="form-grid">
+        <div class="form-group"><label>Days of Stimulation</label><input type="number" id="s-days" placeholder="e.g. 11"></div>
+        <div class="form-group"><label>Peak E2 on Trigger Day (pg/mL)</label><input type="text" id="s-e2-trigger" placeholder="e.g. 3200"></div>
+        <div class="form-group"><label>LH on Trigger Day</label><input type="text" id="s-lh-trigger" placeholder="e.g. 1.8"></div>
+        <div class="form-group"><label>Leading Follicle Size (mm)</label><input type="text" id="s-lead-fol" placeholder="e.g. 20 mm"></div>
+        <div class="form-group"><label>Number of Follicles ≥18 mm on Trigger Day</label><input type="number" id="s-fol-18" placeholder="e.g. 6"></div>
+        <div class="form-group"><label>Number of Follicles 14–17 mm</label><input type="number" id="s-fol-14" placeholder="e.g. 4"></div>
+        <div class="form-group"><label>Endometrial Thickness on Trigger Day (mm)</label><input type="text" id="s-endo-trig" placeholder="e.g. 10"></div>
+        <div class="form-group"><label>Trigger Agent</label>
+          <select id="s-trigger"><option>hCG 10,000 IU (Pregnyl / Profasi)</option><option>hCG 6,500 IU recombinant (Ovitrelle/Choriogonadotropin alfa)</option><option>GnRH agonist trigger — triptorelin 0.2 mg</option><option>GnRH agonist trigger — leuprolide 1 mg</option><option>Dual trigger: hCG + GnRH agonist</option><option>Kisspeptin trigger</option></select>
+        </div>
+        <div class="form-group"><label>Trigger Date & Time</label><input type="text" id="s-trig-time" placeholder="e.g. 12/05/2025 at 22:00"></div>
+        <div class="form-group"><label>OHSS Risk Assessment</label>
+          <select id="s-ohss"><option>Low risk</option><option>Moderate risk</option><option>High risk — freeze-all planned</option><option>OHSS developed — Grade mild</option><option>OHSS developed — Grade moderate</option><option>OHSS developed — Grade severe</option></select>
+        </div>
+        <div class="form-group"><label>Freeze-all Decision</label>
+          <select id="s-freeze-all"><option>Fresh transfer planned</option><option>Freeze-all — OHSS risk</option><option>Freeze-all — endometrial reason</option><option>Freeze-all — PGT planned</option><option>Freeze-all — other reason</option></select>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- RETRIEVAL & TRANSFER -->
+  <div class="organ-panel" id="repro-retrieval">
+    <div class="card-box">
+      <h3><span class="ico">🥚</span> Oocyte Retrieval</h3>
+      <div class="form-grid">
+        <div class="form-group"><label>Date of Retrieval</label><input type="date" id="ret-date"></div>
+        <div class="form-group"><label>Time from Trigger (hours)</label><input type="text" id="ret-hours" placeholder="e.g. 35–36 hours"></div>
+        <div class="form-group"><label>Oocytes Retrieved (total)</label><input type="number" id="ret-total" placeholder="e.g. 12"></div>
+        <div class="form-group"><label>Mature (MII) Oocytes</label><input type="number" id="ret-mii" placeholder="e.g. 10"></div>
+        <div class="form-group"><label>Immature (MI / GV) Oocytes</label><input type="number" id="ret-immature" placeholder="e.g. 2"></div>
+        <div class="form-group"><label>Atretic Oocytes</label><input type="number" id="ret-atretic" placeholder="e.g. 0"></div>
+        <div class="form-group"><label>Fertilization Method</label>
+          <select id="ret-fert-method"><option>Conventional IVF</option><option>ICSI</option><option>IMSI</option><option>Split IVF/ICSI</option><option>PICSI</option></select>
+        </div>
+        <div class="form-group"><label>Oocytes Inseminated</label><input type="number" id="ret-insem" placeholder="e.g. 10"></div>
+        <div class="form-group"><label>Anesthesia for Retrieval</label>
+          <select id="ret-anes"><option>IV sedation (propofol)</option><option>General anesthesia</option><option>Local anesthesia</option><option>No anesthesia</option></select>
+        </div>
+        <div class="form-group"><label>Complications</label>
+          <select id="ret-comp"><option>None</option><option>Bleeding from puncture site — managed</option><option>Pelvic infection — treated</option><option>Bowel injury (rare)</option><option>Inadequate response — cancelled</option></select>
+        </div>
+      </div>
+    </div>
+
+    <div class="card-box">
+      <h3><span class="ico">🔬</span> Embryology Results</h3>
+      <div class="form-grid">
+        <div class="form-group"><label>Fertilization Rate (2PN)</label><input type="text" id="emb-2pn" placeholder="e.g. 8/10 = 80%"></div>
+        <div class="form-group"><label>Day 3 Embryos (n)</label><input type="number" id="emb-d3" placeholder="e.g. 7"></div>
+        <div class="form-group"><label>Day 3 — Top Quality (n)</label><input type="number" id="emb-d3-top" placeholder="e.g. 4 (Grade 8A)"></div>
+        <div class="form-group"><label>Blastocysts Formed (Day 5/6)</label><input type="number" id="emb-blast" placeholder="e.g. 5"></div>
+        <div class="form-group"><label>Top Quality Blastocysts</label><input type="number" id="emb-blast-top" placeholder="e.g. 3 (4AA/5AA)"></div>
+        <div class="form-group"><label>PGT Performed</label>
+          <select id="emb-pgt"><option>No</option><option>PGT-A</option><option>PGT-M</option><option>PGT-SR</option><option>PGT-A + PGT-M</option></select>
+        </div>
+        <div class="form-group"><label>PGT Result (euploid embryos)</label><input type="text" id="emb-pgt-result" placeholder="e.g. 3 euploid, 1 aneuploid"></div>
+        <div class="form-group"><label>Embryos Cryopreserved (n)</label><input type="number" id="emb-cryo" placeholder="e.g. 4"></div>
+        <div class="form-group"><label>Cryo Stage</label>
+          <select id="emb-cryo-stage"><option>N/A</option><option>Day 3 cleavage stage</option><option>Day 5 blastocyst</option><option>Day 6 blastocyst</option><option>Mixed Day 5 & 6</option><option>Oocytes (egg freeze)</option></select>
+        </div>
+        <div class="form-group"><label>Vitrification Outcome</label>
+          <select id="emb-vit"><option>N/A</option><option>All survived vitrification</option><option>1 degenerated during vitrification</option><option>Partial survival</option></select>
+        </div>
+      </div>
+    </div>
+
+    <div class="card-box">
+      <h3><span class="ico">🤱</span> Embryo Transfer</h3>
+      <div class="form-grid">
+        <div class="form-group"><label>Transfer Date</label><input type="date" id="et-date"></div>
+        <div class="form-group"><label>Transfer Type</label>
+          <select id="et-type"><option>Fresh transfer</option><option>Frozen-thawed transfer (FET)</option></select>
+        </div>
+        <div class="form-group"><label>Transfer Day</label>
+          <select id="et-day"><option>Day 2</option><option>Day 3</option><option>Day 5 (blastocyst)</option><option>Day 6 (blastocyst)</option></select>
+        </div>
+        <div class="form-group"><label>Number of Embryos Transferred</label>
+          <select id="et-number"><option>1</option><option>2</option><option>3 (exceptional cases)</option></select>
+        </div>
+        <div class="form-group"><label>Embryo Grade(s)</label><input type="text" id="et-grade" placeholder="e.g. 5AA, 4AB"></div>
+        <div class="form-group"><label>Endometrial Thickness at Transfer (mm)</label><input type="text" id="et-endo" placeholder="e.g. 9 mm"></div>
+        <div class="form-group"><label>Transfer Catheter</label>
+          <select id="et-cath"><option>Wallace soft</option><option>Cook Soft-Trans</option><option>Labotect</option><option>Frydman</option><option>Tomcat (difficult transfer)</option><option>Other</option></select>
+        </div>
+        <div class="form-group"><label>Transfer Difficulty</label>
+          <select id="et-diff"><option>Easy</option><option>Moderately difficult</option><option>Difficult — mock performed first</option><option>Tenaculum required</option></select>
+        </div>
+        <div class="form-group"><label>Ultrasound Guidance</label>
+          <select id="et-us"><option>Transabdominal ultrasound guidance</option><option>No ultrasound</option></select>
+        </div>
+        <div class="form-group"><label>Blood on Catheter</label>
+          <select id="et-blood"><option>No blood</option><option>Minimal blood</option><option>Significant blood — repeated</option></select>
+        </div>
+      </div>
+      <label class="mt-4 mb-2" style="display:block;">Luteal Phase Support</label>
+      <div class="check-group">
+        <span class="check-item" data-group="lp-f"><span class="ci-box">✓</span>Progesterone vaginal suppository (Cyclogest / Utrogestan)</span>
+        <span class="check-item" data-group="lp-f"><span class="ci-box">✓</span>Progesterone IM injection</span>
+        <span class="check-item" data-group="lp-f"><span class="ci-box">✓</span>Estradiol valerate (Progynova)</span>
+        <span class="check-item" data-group="lp-f"><span class="ci-box">✓</span>Estradiol patches</span>
+        <span class="check-item" data-group="lp-f"><span class="ci-box">✓</span>hCG 1500 IU support</span>
+        <span class="check-item" data-group="lp-f"><span class="ci-box">✓</span>GnRH agonist luteal support</span>
+        <span class="check-item" data-group="lp-f"><span class="ci-box">✓</span>Aspirin 75 mg</span>
+        <span class="check-item" data-group="lp-f"><span class="ci-box">✓</span>LMWH (Clexane/Fragmin)</span>
+        <span class="check-item" data-group="lp-f"><span class="ci-box">✓</span>Folic acid</span>
+        <span class="check-item" data-group="lp-f"><span class="ci-box">✓</span>Prednisolone</span>
+      </div>
+      <div class="form-group mt-4"><label>Beta hCG Test Date</label><input type="date" id="et-bhcg-date"></div>
+      <div class="form-group mt-4"><label>Beta hCG Result</label><input type="text" id="et-bhcg" placeholder="e.g. 185 mIU/mL — positive"></div>
+      <div class="form-group mt-4"><label>Notes</label><textarea id="et-notes" placeholder="Any additional transfer notes, cycle summary..."></textarea></div>
+    </div>
+  </div><!-- /repro-retrieval -->
+
+  <div class="action-row">
+    <button class="btn btn-primary" onclick="previewReport('repro')">👁 Preview Report</button>
+    <button class="btn btn-outline" onclick="clearForm('repro')">🗑 Clear Form</button>
+  </div>
+</div><!-- /page-repro -->
+
+</main>
+</div><!-- /app -->
+
+<!-- PREVIEW MODAL -->
+<div id="preview-modal">
+  <div class="modal-box">
+    <div class="modal-head">
+      <h3 id="modal-title">Operative Report Preview</h3>
+      <button class="btn btn-outline" onclick="closeModal()" style="padding:6px 14px;">✕ Close</button>
+    </div>
+    <div class="modal-body">
+      <div class="report-preview" id="report-content"></div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-gold" onclick="generatePDF()">📄 Generate PDF</button>
+      <button class="btn btn-success" onclick="printReport()">🖨 Send to Sharp Printer</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ════════════════════════════════════════════════════
+// FOLDER SETUP
+// ════════════════════════════════════════════════════
+let savedFolderName = localStorage.getItem('gynop_folder') || '';
+
+window.addEventListener('load', () => {
+  if (!savedFolderName) {
+    document.getElementById('folder-modal').classList.remove('hidden');
+  } else {
+    updateFolderDisplay();
+    document.getElementById('folder-modal').classList.add('hidden');
+  }
+});
+
+function openFolderModal() {
+  document.getElementById('folder-modal').classList.remove('hidden');
+  document.getElementById('folder-saved-badge').classList.remove('show');
+}
+
+function selectFolder() {
+  // Since browsers cannot write to arbitrary folders directly,
+  // we prompt for a folder name and store it; PDFs download with
+  // that path prefix shown so the user knows where to move them.
+  const name = prompt(
+    'Enter your save folder path (e.g.:\nC:\\Users\\YourName\\Desktop\\Operative Reports\n\nThis will be shown on each PDF so you know where to file it):',
+    savedFolderName || 'C:\\Users\\' + (navigator.userAgent.includes('Win') ? 'Doctor' : 'doctor') + '\\Desktop\\Operative Reports'
+  );
+  if (name && name.trim()) {
+    savedFolderName = name.trim();
+    localStorage.setItem('gynop_folder', savedFolderName);
+    updateFolderDisplay();
+    document.getElementById('folder-saved-badge').classList.add('show');
+    setTimeout(() => document.getElementById('folder-saved-badge').classList.remove('show'), 2500);
+    setTimeout(() => document.getElementById('folder-modal').classList.add('hidden'), 1800);
+  }
+}
+
+function skipFolderSetup() {
+  document.getElementById('folder-modal').classList.add('hidden');
+}
+
+function updateFolderDisplay() {
+  const disp = document.getElementById('folder-display');
+  const btn = document.getElementById('folder-btn-label');
+  if (savedFolderName) {
+    disp.innerHTML = `<span class="folder-set">📁 ${savedFolderName}</span>`;
+    btn.textContent = 'Change Folder';
+  }
+}
+
+// ════════════════════════════════════════════════════
+// NAVIGATION
+// ════════════════════════════════════════════════════
+function showPage(id) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.sidebar-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('page-' + id).classList.add('active');
+  // Update sidebar active state
+  const map = { home: 0, onco: 1, benign: 2, repro: 3 };
+  const btns = document.querySelectorAll('.sidebar-btn');
+  if (btns[map[id]]) btns[map[id]].classList.add('active');
+  // Scroll to top
+  document.querySelector('.main').scrollTop = 0;
+}
+
+// ════════════════════════════════════════════════════
+// ORGAN TABS
+// ════════════════════════════════════════════════════
+function switchOrgan(section, organ) {
+  const tabsContainer = document.getElementById(section + '-tabs');
+  tabsContainer.querySelectorAll('.organ-tab').forEach(t => t.classList.remove('active'));
+  event.target.classList.add('active');
+  // Hide all organ panels within the same parent card-box
+  const cardBox = tabsContainer.closest('.card-box');
+  cardBox.querySelectorAll('.organ-panel').forEach(p => p.classList.remove('active'));
+  const panel = document.getElementById(section + '-' + organ);
+  if (panel) panel.classList.add('active');
+}
+
+// ════════════════════════════════════════════════════
+// REPRO TABS
+// ════════════════════════════════════════════════════
+function switchReproTab(tab) {
+  document.querySelectorAll('.repro-tab').forEach(t => t.classList.remove('active'));
+  event.target.classList.add('active');
+  ['female','male','stimulation','retrieval'].forEach(id => {
+    const el = document.getElementById('repro-' + id);
+    if (el) el.classList.remove('active');
+  });
+  document.getElementById('repro-' + tab).classList.add('active');
+}
+
+// ════════════════════════════════════════════════════
+// CHECKBOXES — CLICK TO SELECT / CLICK AGAIN TO DESELECT
+// Uses <span class="check-item"> so NO double-fire from label/input
+// ════════════════════════════════════════════════════
+document.addEventListener('click', function(e) {
+  const ci = e.target.closest('.check-item');
+  if (!ci) return;
+  ci.classList.toggle('checked');
+});
+
+// ════════════════════════════════════════════════════
+// GET CHECKED ITEMS — collect text from checked spans
+// ════════════════════════════════════════════════════
+// Get all checked items inside a CSS selector container
+function getChecked(selector) {
+  const items = [];
+  document.querySelectorAll(selector + ' .check-item.checked').forEach(el => {
+    // Clone to get text without ci-box content
+    const clone = el.cloneNode(true);
+    const box = clone.querySelector('.ci-box');
+    if (box) box.remove();
+    const text = clone.textContent.trim();
+    if (text) items.push(text);
+  });
+  return items;
+}
+
+// Get all checked items that have a specific data-group attribute
+function getCheckedByGroup(groupName) {
+  const items = [];
+  document.querySelectorAll(`.check-item.checked[data-group="${groupName}"]`).forEach(el => {
+    const clone = el.cloneNode(true);
+    const box = clone.querySelector('.ci-box');
+    if (box) box.remove();
+    const text = clone.textContent.trim();
+    if (text) items.push(text);
+  });
+  return items;
+}
+
+function v(id) {
+  const el = document.getElementById(id);
+  return el ? el.value.trim() : '';
+}
+
+function fmtDate(d) {
+  if (!d) return '';
+  const parts = d.split('-');
+  return parts.length === 3 ? `${parts[2]}/${parts[1]}/${parts[0]}` : d;
+}
+
+// ════════════════════════════════════════════════════
+// BUILD REPORT TEXT — checked items appear in report
+// ════════════════════════════════════════════════════
+function buildReport(type) {
+  let lines = [];
+  const hr = '─'.repeat(52);
+
+  if (type === 'onco') {
+    const activeOrgan = document.querySelector('#onco-tabs .organ-tab.active')?.textContent?.trim() || '';
+    lines.push('OPERATIVE REPORT — ONCOLOGIC SURGERY');
+    lines.push(hr);
+    lines.push(`Patient Name:      ${v('o-name')}`);
+    lines.push(`Date of Birth:     ${fmtDate(v('o-dob'))}`);
+    lines.push(`Date of Procedure: ${fmtDate(v('o-date'))}`);
+    lines.push(`Operating Surgeon: ${v('o-surgeon')}`);
+    lines.push(`Procedure Type:    Oncologic Surgery — ${activeOrgan} Cancer`);
+    lines.push(`Indication:        ${v('o-indication')}`);
+    lines.push(hr);
+    lines.push('OPERATIVE DETAILS');
+    lines.push(hr);
+    lines.push(`Anesthesia:        ${v('o-anes')}`);
+    lines.push(`Patient Position:  ${v('o-pos')}`);
+    lines.push(`Duration:          ${v('o-duration')} minutes`);
+    lines.push(`Estimated Blood Loss: ${v('o-ebl')} mL`);
+    lines.push(`Complications:     ${v('o-comp')}`);
+    lines.push(`Specimens Sent:    ${v('o-specimen')}`);
+    lines.push('');
+    lines.push('ORGAN-SPECIFIC FINDINGS');
+    lines.push(hr);
+
+    if (activeOrgan === 'Vulvar') {
+      lines.push(`Histologic Type:   ${v('v-histo')}`);
+      lines.push(`FIGO Stage:        ${v('v-stage')}`);
+      lines.push(`Location:          ${v('v-location')}`);
+      lines.push(`Lesion Size:       ${v('v-size')}`);
+      lines.push(`Procedure:         ${v('v-proc')}`);
+      lines.push(`Margins:           ${v('v-margins')}`);
+      lines.push(`Lymph Nodes:       ${v('v-nodes')}`);
+      const f = getChecked('#v-findings');
+      if (f.length) { lines.push(''); lines.push('Intraoperative Findings:'); f.forEach(x => lines.push('  • ' + x)); }
+    } else if (activeOrgan === 'Vaginal') {
+      lines.push(`Histologic Type:   ${v('vag-histo')}`);
+      lines.push(`FIGO Stage:        ${v('vag-stage')}`);
+      lines.push(`Location:          ${v('vag-loc')}`);
+      lines.push(`Lesion Size:       ${v('vag-size')}`);
+      lines.push(`Procedure:         ${v('vag-proc')}`);
+      lines.push(`Lymphadenectomy:   ${v('vag-lymph')}`);
+      const f = getChecked('#vag-findings');
+      if (f.length) { lines.push(''); lines.push('Intraoperative Findings:'); f.forEach(x => lines.push('  • ' + x)); }
+      if (v('vag-notes')) { lines.push(''); lines.push('Notes: ' + v('vag-notes')); }
+    } else if (activeOrgan === 'Cervical') {
+      lines.push(`Histologic Type:   ${v('cx-histo')}`);
+      lines.push(`FIGO Stage:        ${v('cx-stage')}`);
+      lines.push(`Tumor Size:        ${v('cx-size')}`);
+      lines.push(`Approach:          ${v('cx-approach')}`);
+      lines.push(`Procedure:         ${v('cx-proc')}`);
+      lines.push(`Lymphadenectomy:   ${v('cx-lymph')}`);
+      lines.push(`Pelvic Nodes:      ${v('cx-nodes')}`);
+      lines.push(`Para-aortic Nodes: ${v('cx-pa-nodes')}`);
+      const f = getCheckedByGroup('cx-f');
+      if (f.length) { lines.push(''); lines.push('Intraoperative Findings:'); f.forEach(x => lines.push('  • ' + x)); }
+      if (v('cx-notes')) { lines.push(''); lines.push('Notes: ' + v('cx-notes')); }
+    } else if (activeOrgan === 'Uterine') {
+      lines.push(`Histologic Type:   ${v('ut-histo')}`);
+      lines.push(`FIGO Stage:        ${v('ut-stage')}`);
+      lines.push(`Grade:             ${v('ut-grade')}`);
+      lines.push(`Approach:          ${v('ut-approach')}`);
+      lines.push(`Procedure:         ${v('ut-proc')}`);
+      lines.push(`Lymphadenectomy:   ${v('ut-lymph')}`);
+      lines.push(`Pelvic Nodes:      ${v('ut-p-nodes')}`);
+      lines.push(`Para-aortic Nodes: ${v('ut-pa-nodes')}`);
+      const f = getCheckedByGroup('ut-f');
+      if (f.length) { lines.push(''); lines.push('Intraoperative Findings:'); f.forEach(x => lines.push('  • ' + x)); }
+      if (v('ut-notes')) { lines.push(''); lines.push('Notes: ' + v('ut-notes')); }
+    } else if (activeOrgan === 'Ovarian') {
+      lines.push(`Histologic Type:   ${v('ov-histo')}`);
+      lines.push(`FIGO Stage:        ${v('ov-stage')}`);
+      lines.push(`Side:              ${v('ov-side')}`);
+      lines.push(`Surgical Intent:   ${v('ov-intent')}`);
+      lines.push(`Procedure:         ${v('ov-proc')}`);
+      lines.push(`Residual Disease:  ${v('ov-residual')}`);
+      lines.push(`Omentum:           ${v('ov-oment')}`);
+      const f = getCheckedByGroup('ov-f');
+      if (f.length) { lines.push(''); lines.push('Intraoperative Findings:'); f.forEach(x => lines.push('  • ' + x)); }
+      if (v('ov-notes')) { lines.push(''); lines.push('Notes: ' + v('ov-notes')); }
+    } else if (activeOrgan === 'Breast') {
+      lines.push(`Histologic Type:   ${v('br-histo')}`);
+      lines.push(`Side:              ${v('br-side')}`);
+      lines.push(`Location:          ${v('br-loc')}`);
+      lines.push(`Tumor Size:        ${v('br-size')}`);
+      lines.push(`Stage:             ${v('br-stage')}`);
+      lines.push(`Procedure:         ${v('br-proc')}`);
+      lines.push(`Axillary:          ${v('br-axilla')}`);
+      lines.push(`Reconstruction:    ${v('br-recon')}`);
+      lines.push(`Sentinel Nodes:    ${v('br-sn')}`);
+      lines.push(`Axillary Nodes:    ${v('br-an')}`);
+      const f = getCheckedByGroup('br-f');
+      if (f.length) { lines.push(''); lines.push('Intraoperative Findings:'); f.forEach(x => lines.push('  • ' + x)); }
+      if (v('br-notes')) { lines.push(''); lines.push('Notes: ' + v('br-notes')); }
+    }
+
+    lines.push('');
+    lines.push('POSTOPERATIVE PLAN');
+    lines.push(hr);
+    lines.push(v('o-postop') || 'See nursing orders.');
+
+  } else if (type === 'benign') {
+    const activeProcTab = document.querySelector('#benign-tabs .organ-tab.active')?.textContent?.trim() || '';
+    lines.push('OPERATIVE REPORT — BENIGN GYNECOLOGIC SURGERY');
+    lines.push(hr);
+    lines.push(`Patient Name:      ${v('b-name')}`);
+    lines.push(`Date of Birth:     ${fmtDate(v('b-dob'))}`);
+    lines.push(`Date of Procedure: ${fmtDate(v('b-date'))}`);
+    lines.push(`Operating Surgeon: ${v('b-surgeon')}`);
+    lines.push(`Procedure Type:    ${activeProcTab}`);
+    lines.push(`Indication:        ${v('b-indication')}`);
+    lines.push(hr);
+    lines.push(`Anesthesia:        ${v('b-anes')}`);
+    lines.push(`Patient Position:  ${v('b-pos')}`);
+    lines.push(`Duration:          ${v('b-duration')} minutes`);
+    lines.push(`Estimated Blood Loss: ${v('b-ebl')} mL`);
+    lines.push(`Complications:     ${v('b-comp')}`);
+    lines.push(`Specimens Sent:    ${v('b-specimen')}`);
+    lines.push('');
+    lines.push('OPERATIVE FINDINGS');
+    lines.push(hr);
+
+    if (activeProcTab === 'Hysterectomy') {
+      lines.push(`Type:              ${v('bh-type')}`);
+      lines.push(`Adnexa:            ${v('bh-adnexa')}`);
+      lines.push(`Uterine Size:      ${v('bh-size')}`);
+      lines.push(`Uterine Weight:    ${v('bh-weight')}`);
+      const f = getCheckedByGroup('bh-f');
+      if (f.length) { lines.push(''); lines.push('Findings:'); f.forEach(x => lines.push('  • ' + x)); }
+      if (v('bh-notes')) { lines.push(''); lines.push('Notes: ' + v('bh-notes')); }
+    } else if (activeProcTab === 'Myomectomy') {
+      lines.push(`Approach:          ${v('bm-approach')}`);
+      lines.push(`Number of Fibroids: ${v('bm-number')}`);
+      lines.push(`Largest Size:      ${v('bm-size')}`);
+      lines.push(`Total Weight:      ${v('bm-weight')}`);
+      lines.push(`Uterine Closure:   ${v('bm-closure')}`);
+      const f1 = getCheckedByGroup('bm-f');
+      if (f1.length) { lines.push(''); lines.push('Fibroid Types:'); f1.forEach(x => lines.push('  • ' + x)); }
+      const f2 = getCheckedByGroup('bm-f2');
+      if (f2.length) { lines.push(''); lines.push('Operative Details:'); f2.forEach(x => lines.push('  • ' + x)); }
+      if (v('bm-notes')) { lines.push(''); lines.push('Notes: ' + v('bm-notes')); }
+    } else if (activeProcTab === 'Ovarian') {
+      lines.push(`Procedure:         ${v('bo-proc')}`);
+      lines.push(`Side:              ${v('bo-side')}`);
+      lines.push(`Cyst Size:         ${v('bo-size')}`);
+      lines.push(`Cyst Type:         ${v('bo-type')}`);
+      const f = getCheckedByGroup('bo-f');
+      if (f.length) { lines.push(''); lines.push('Findings:'); f.forEach(x => lines.push('  • ' + x)); }
+      if (v('bo-notes')) { lines.push(''); lines.push('Notes: ' + v('bo-notes')); }
+    } else if (activeProcTab === 'Diagnostic Lap') {
+      lines.push(`Indication:        ${v('bl-ind')}`);
+      lines.push(`Chromopertubation: ${v('bl-chromo')}`);
+      const f = getCheckedByGroup('bl-f');
+      if (f.length) { lines.push(''); lines.push('Findings:'); f.forEach(x => lines.push('  • ' + x)); }
+      if (v('bl-notes')) { lines.push(''); lines.push('Notes: ' + v('bl-notes')); }
+    } else if (activeProcTab === 'Hysteroscopy') {
+      lines.push(`Type:              ${v('bhs-type')}`);
+      lines.push(`Distension Medium: ${v('bhs-medium')}`);
+      const f1 = getCheckedByGroup('bhs-f');
+      if (f1.length) { lines.push(''); lines.push('Cavity Findings:'); f1.forEach(x => lines.push('  • ' + x)); }
+      const f2 = getCheckedByGroup('bhs-p');
+      if (f2.length) { lines.push(''); lines.push('Procedures:'); f2.forEach(x => lines.push('  • ' + x)); }
+      if (v('bhs-notes')) { lines.push(''); lines.push('Notes: ' + v('bhs-notes')); }
+    } else if (activeProcTab === 'Tubo-peritoneal') {
+      lines.push(`Procedure:         ${v('bt-proc')}`);
+      const f = getCheckedByGroup('bt-f');
+      if (f.length) { lines.push(''); lines.push('Findings:'); f.forEach(x => lines.push('  • ' + x)); }
+      if (v('bt-notes')) { lines.push(''); lines.push('Notes: ' + v('bt-notes')); }
+    } else if (activeProcTab === 'Prolapse / PFR') {
+      lines.push(`POP-Q Stage:       ${v('bp-degree')}`);
+      const comp = getCheckedByGroup('bp-comp');
+      if (comp.length) { lines.push(''); lines.push('Compartments:'); comp.forEach(x => lines.push('  • ' + x)); }
+      const proc = getCheckedByGroup('bp-proc');
+      if (proc.length) { lines.push(''); lines.push('Procedures:'); proc.forEach(x => lines.push('  • ' + x)); }
+      if (v('bp-notes')) { lines.push(''); lines.push('Notes: ' + v('bp-notes')); }
+    }
+
+    lines.push('');
+    lines.push('POSTOPERATIVE PLAN');
+    lines.push(hr);
+    lines.push(v('b-postop') || 'See nursing orders.');
+
+  } else if (type === 'repro') {
+    lines.push('ART CLINICAL RECORD');
+    lines.push(hr);
+    lines.push(`Female Patient:    ${v('r-fname')}`);
+    lines.push(`Female DOB:        ${fmtDate(v('r-fdob'))}`);
+    lines.push(`Partner:           ${v('r-mname')}`);
+    lines.push(`Partner DOB:       ${fmtDate(v('r-mdob'))}`);
+    lines.push(`Date:              ${fmtDate(v('r-date'))}`);
+    lines.push(`Procedure:         ${v('r-proc')}`);
+    lines.push(`Indication:        ${v('r-indication')}`);
+    lines.push('');
+    lines.push('FEMALE HORMONAL WORKUP');
+    lines.push(hr);
+    lines.push(`FSH: ${v('f-fsh')} mIU/mL   LH: ${v('f-lh')} mIU/mL   E2: ${v('f-e2')} pg/mL`);
+    lines.push(`Progesterone: ${v('f-prog')} ng/mL   AMH: ${v('f-amh')} ng/mL   Prolactin: ${v('f-prl')} ng/mL`);
+    lines.push(`TSH: ${v('f-tsh')} mIU/L   Free T4: ${v('f-ft4')}`);
+    lines.push(`Testosterone: ${v('f-testo')} ng/dL   DHEA-S: ${v('f-dheas')} μg/dL`);
+    lines.push(`Fasting Insulin: ${v('f-insulin')} μU/mL   Glucose: ${v('f-glucose')} mg/dL   HOMA-IR: ${v('f-homa')}`);
+    lines.push(`Vitamin D: ${v('f-vitd')} ng/mL   Hemoglobin: ${v('f-hgb')} g/dL`);
+    lines.push('');
+    lines.push('ANTRAL FOLLICLE COUNT & ULTRASOUND');
+    lines.push(hr);
+    lines.push(`AFC — Right: ${v('f-afc-r')}   Left: ${v('f-afc-l')}   Total: ${v('f-afc-total')}`);
+    lines.push(`Ovarian Volume — Right: ${v('f-rov')} mL   Left: ${v('f-lov')} mL`);
+    lines.push(`Uterine Cavity: ${v('f-uterus')}`);
+    lines.push(`Endometrial Thickness: ${v('f-endo')}   Pattern: ${v('f-pattern')}`);
+    const usf = getCheckedByGroup('f-us');
+    if (usf.length) { lines.push('Ultrasound Findings:'); usf.forEach(x => lines.push('  • ' + x)); }
+    lines.push('');
+    lines.push('INFECTIOUS / GENETIC SCREENING — FEMALE');
+    lines.push(hr);
+    lines.push(`Rubella IgG: ${v('f-rubella')}   HBsAg: ${v('f-hbv')}   Anti-HCV: ${v('f-hcv')}   HIV: ${v('f-hiv')}`);
+    lines.push(`Karyotype: ${v('f-karyo')}   Thrombophilia: ${v('f-thrombo')}`);
+    lines.push('');
+    lines.push('MALE SEMEN ANALYSIS (WHO 2021)');
+    lines.push(hr);
+    lines.push(`Volume: ${v('m-vol')} mL   pH: ${v('m-ph')}`);
+    lines.push(`Concentration: ${v('m-conc')} x10^6/mL   Total Count: ${v('m-total')} x10^6`);
+    lines.push(`Total Motility: ${v('m-motility')}%   Progressive Motility: ${v('m-pr')}%`);
+    lines.push(`Morphology (Kruger): ${v('m-morpho')}%   Vitality: ${v('m-vitality')}%`);
+    lines.push(`WBC: ${v('m-wbc')} x10^6/mL   Round Cells: ${v('m-rc')}   Liquefaction: ${v('m-liq')}`);
+    lines.push(`MAR / Antibodies: ${v('m-mar')}`);
+    const mc = getCheckedByGroup('m-class');
+    if (mc.length) { lines.push('Semen Classification:'); mc.forEach(x => lines.push('  • ' + x)); }
+    lines.push('');
+    lines.push('MALE HORMONAL & GENETIC');
+    lines.push(hr);
+    lines.push(`FSH: ${v('m-fsh')}   LH: ${v('m-lh')}   Testosterone: ${v('m-testo')} ng/dL   Prolactin: ${v('m-prl')} ng/mL`);
+    lines.push(`Karyotype: ${v('m-karyo')}   AZF: ${v('m-azf')}`);
+    lines.push(`HBsAg: ${v('m-hbv')}   HIV: ${v('m-hiv')}`);
+    lines.push('');
+    lines.push('OVARIAN STIMULATION PROTOCOL');
+    lines.push(hr);
+    lines.push(`Protocol:          ${v('s-protocol')}`);
+    lines.push(`Starting FSH Dose: ${v('s-start-dose')}`);
+    lines.push(`Suppression Agent: ${v('s-downreg')}`);
+    lines.push(`Antagonist Start:  ${v('s-antag-day')}`);
+    // FSH log
+    const fshRows = document.querySelectorAll('[id^="fsh-row-"]');
+    if (fshRows.length) {
+      lines.push('');
+      lines.push('FSH Administration Log:');
+      fshRows.forEach(row => {
+        const id = row.id.split('-')[2];
+        const date = v(`fsh-date-${id}`);
+        const drug = v(`fsh-drug-${id}`);
+        const dose = v(`fsh-dose-${id}`);
+        if (date || drug || dose) lines.push(`  ${fmtDate(date) || '(date)'} — ${drug || '(drug)'} — ${dose || '(dose)'}`);
+      });
+    }
+    lines.push('');
+    lines.push('MONITORING & TRIGGER');
+    lines.push(hr);
+    lines.push(`Days of Stimulation: ${v('s-days')}`);
+    lines.push(`E2 at Trigger: ${v('s-e2-trigger')} pg/mL   LH: ${v('s-lh-trigger')}`);
+    lines.push(`Leading Follicle: ${v('s-lead-fol')}   Follicles >=18mm: ${v('s-fol-18')}   14-17mm: ${v('s-fol-14')}`);
+    lines.push(`Endometrium at Trigger: ${v('s-endo-trig')} mm`);
+    lines.push(`Trigger Agent:     ${v('s-trigger')}`);
+    lines.push(`Trigger Date/Time: ${v('s-trig-time')}`);
+    lines.push(`OHSS Risk:         ${v('s-ohss')}`);
+    lines.push(`Transfer Decision: ${v('s-freeze-all')}`);
+    lines.push('');
+    lines.push('OOCYTE RETRIEVAL');
+    lines.push(hr);
+    lines.push(`Date of Retrieval: ${fmtDate(v('ret-date'))}`);
+    lines.push(`Time from Trigger: ${v('ret-hours')}`);
+    lines.push(`Oocytes Retrieved: ${v('ret-total')}   MII: ${v('ret-mii')}   Immature: ${v('ret-immature')}   Atretic: ${v('ret-atretic')}`);
+    lines.push(`Fertilization Method: ${v('ret-fert-method')}`);
+    lines.push(`Oocytes Inseminated: ${v('ret-insem')}`);
+    lines.push(`Anesthesia:        ${v('ret-anes')}`);
+    lines.push(`Complications:     ${v('ret-comp')}`);
+    lines.push('');
+    lines.push('EMBRYOLOGY RESULTS');
+    lines.push(hr);
+    lines.push(`2PN Fertilization: ${v('emb-2pn')}`);
+    lines.push(`Day 3 Embryos: ${v('emb-d3')}   Top Quality: ${v('emb-d3-top')}`);
+    lines.push(`Blastocysts: ${v('emb-blast')}   Top Quality: ${v('emb-blast-top')}`);
+    lines.push(`PGT: ${v('emb-pgt')}   Result: ${v('emb-pgt-result')}`);
+    lines.push(`Cryopreserved: ${v('emb-cryo')}   Stage: ${v('emb-cryo-stage')}   Vitrification: ${v('emb-vit')}`);
+    lines.push('');
+    lines.push('EMBRYO TRANSFER');
+    lines.push(hr);
+    lines.push(`Transfer Date:     ${fmtDate(v('et-date'))}`);
+    lines.push(`Transfer Type:     ${v('et-type')}`);
+    lines.push(`Transfer Day:      ${v('et-day')}`);
+    lines.push(`Embryos Transferred: ${v('et-number')}   Grade(s): ${v('et-grade')}`);
+    lines.push(`Endometrium:       ${v('et-endo')} mm`);
+    lines.push(`Catheter:          ${v('et-cath')}`);
+    lines.push(`Difficulty:        ${v('et-diff')}`);
+    lines.push(`US Guidance:       ${v('et-us')}`);
+    lines.push(`Blood on Catheter: ${v('et-blood')}`);
+    const lp = getCheckedByGroup('lp-f');
+    if (lp.length) { lines.push(''); lines.push('Luteal Phase Support:'); lp.forEach(x => lines.push('  • ' + x)); }
+    lines.push('');
+    lines.push(`Beta hCG Test Date: ${fmtDate(v('et-bhcg-date'))}`);
+    lines.push(`Beta hCG Result:   ${v('et-bhcg')}`);
+    if (v('et-notes')) { lines.push(''); lines.push('Notes: ' + v('et-notes')); }
+  }
+
+  // Folder info footer
+  if (savedFolderName) {
+    lines.push('');
+    lines.push('─'.repeat(52));
+    lines.push(`Save Location: ${savedFolderName}`);
+  }
+
+  return lines.join('\n');
+}
+
+// ════════════════════════════════════════════════════
+// PREVIEW
+// ════════════════════════════════════════════════════
+let currentReportType = '';
+let currentReportText = '';
+
+function previewReport(type) {
+  currentReportType = type;
+  currentReportText = buildReport(type);
+  document.getElementById('report-content').textContent = currentReportText;
+  const titles = { onco: 'Oncologic Surgery Report', benign: 'Benign Surgery Report', repro: 'ART Clinical Record' };
+  document.getElementById('modal-title').textContent = titles[type] || 'Operative Report';
+  document.getElementById('preview-modal').classList.add('show');
+}
+
+function closeModal() {
+  document.getElementById('preview-modal').classList.remove('show');
+}
+
+// ════════════════════════════════════════════════════
+// PDF GENERATION (jsPDF)
+// ════════════════════════════════════════════════════
+function generatePDF() {
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({ unit: 'mm', format: 'a4' });
+  const pageW = doc.internal.pageSize.getWidth();
+  const pageH = doc.internal.pageSize.getHeight();
+  const margin = 18;
+  const lineH = 5.2;
+  let y = margin;
+
+  // Header band
+  doc.setFillColor(10, 22, 40);
+  doc.rect(0, 0, pageW, 22, 'F');
+  doc.setTextColor(79, 195, 247);
+  doc.setFontSize(14);
+  doc.setFont('helvetica', 'bold');
+  doc.text('GynOp Report System', margin, 13);
+  doc.setFontSize(9);
+  doc.setTextColor(107, 138, 170);
+  doc.setFont('helvetica', 'normal');
+  doc.text('Gynecologic Operative Documentation', margin, 19);
+
+  // Folder path in header if set
+  if (savedFolderName) {
+    doc.setFontSize(8);
+    doc.setTextColor(150, 180, 200);
+    const folderText = 'Save to: ' + savedFolderName;
+    const tw = doc.getTextWidth(folderText);
+    doc.text(folderText, pageW - margin - tw, 14);
+  }
+
+  y = 32;
+  doc.setTextColor(30, 30, 30);
+  doc.setFontSize(9.5);
+  doc.setFont('helvetica', 'normal');
+
+  const lines = currentReportText.split('\n');
+  lines.forEach(line => {
+    if (y > pageH - margin) {
+      doc.addPage();
+      y = margin;
+    }
+    const isHr = line.startsWith('─');
+    const isHeader = !isHr && line === line.toUpperCase() && line.length > 3 && !line.startsWith('  ');
+
+    if (isHr) {
+      doc.setDrawColor(200, 200, 200);
+      doc.line(margin, y - 1, pageW - margin, y - 1);
+      y += 2;
+      return;
+    }
+    if (isHeader) {
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(0, 100, 160);
+      doc.setFontSize(10);
+    } else {
+      doc.setFont('helvetica', 'normal');
+      doc.setTextColor(40, 40, 40);
+      doc.setFontSize(9.5);
+    }
+
+    const wrapped = doc.splitTextToSize(line || ' ', pageW - margin * 2);
+    wrapped.forEach(wl => {
+      if (y > pageH - margin) { doc.addPage(); y = margin; }
+      doc.text(wl, margin, y);
+      y += lineH;
+    });
+  });
+
+  // Footer on all pages
+  const totalPages = doc.internal.getNumberOfPages();
+  for (let i = 1; i <= totalPages; i++) {
+    doc.setPage(i);
+    doc.setFontSize(8);
+    doc.setTextColor(150, 150, 150);
+    doc.setFont('helvetica', 'normal');
+    doc.text(
+      `Page ${i} of ${totalPages}   |   Generated: ${new Date().toLocaleDateString()}   |   GynOp Report System`,
+      margin, pageH - 8
+    );
+  }
+
+  const typeLabels = { onco: 'Oncologic_Report', benign: 'Benign_Surgery_Report', repro: 'ART_Record' };
+  const patName = v('o-name') || v('b-name') || v('r-fname') || 'Patient';
+  const dateStr = new Date().toISOString().slice(0,10);
+  const fname = `${typeLabels[currentReportType] || 'Report'}_${patName.replace(/\s+/g,'_')}_${dateStr}.pdf`;
+  doc.save(fname);
+
+  // Show save reminder if folder is set
+  if (savedFolderName) {
+    setTimeout(() => {
+      alert(`PDF saved as:\n${fname}\n\nPlease move it to your Operative Reports folder:\n${savedFolderName}`);
+    }, 500);
+  }
+}
+
+// ════════════════════════════════════════════════════
+// PRINT — sends to Sharp or any printer via browser dialog
+// ════════════════════════════════════════════════════
+function printReport() {
+  const text = currentReportText;
+  const w = window.open('', '_blank');
+  w.document.write(`<!DOCTYPE html><html><head>
+    <title>Operative Report</title>
+    <style>
+      body { font-family: Georgia, serif; font-size: 11pt; line-height: 1.7; margin: 20mm 18mm; color: #111; }
+      pre { font-family: Georgia, serif; white-space: pre-wrap; word-break: break-word; }
+      .hdr { background: #0a1628; color: #4fc3f7; padding: 8px 14px; margin-bottom: 14px; font-family: Arial, sans-serif; font-size: 13pt; font-weight: bold; }
+      .sub { font-size: 9pt; color: #8baabf; margin-top: 2px; }
+      .foot { border-top: 1px solid #ccc; margin-top: 30px; font-size: 9pt; color: #666; text-align: center; padding-top: 6px; }
+      @media print { @page { margin: 18mm; size: A4; } }
+    </style>
+  </head><body>
+    <div class="hdr">
+      GynOp Report System — Operative Documentation
+      ${savedFolderName ? `<div class="sub">Save folder: ${savedFolderName.replace(/</g,'&lt;')}</div>` : ''}
+    </div>
+    <pre>${text.replace(/</g,'&lt;').replace(/>/g,'&gt;')}</pre>
+    <div class="foot">Printed: ${new Date().toLocaleString()} &nbsp;|&nbsp; GynOp Report System</div>
+  </body></html>`);
+  w.document.close();
+  setTimeout(() => { w.focus(); w.print(); }, 600);
+}
+
+// ════════════════════════════════════════════════════
+// CLEAR FORM
+// ════════════════════════════════════════════════════
+function clearForm(type) {
+  if (!confirm('Clear all fields in this form?')) return;
+  const prefix = { onco: 'page-onco', benign: 'page-benign', repro: 'page-repro' }[type];
+  const page = document.getElementById(prefix);
+  page.querySelectorAll('input, select, textarea').forEach(el => {
+    if (el.tagName === 'SELECT') el.selectedIndex = 0;
+    else el.value = '';
+  });
+  page.querySelectorAll('.check-item').forEach(el => {
+    el.classList.remove('checked');
+    const cb = el.querySelector('input[type=checkbox]');
+    if (cb) cb.checked = false;
+  });
+}
+
+// ════════════════════════════════════════════════════
+// FSH LOG
+// ════════════════════════════════════════════════════
+let fshCount = 0;
+function addFshRow() {
+  fshCount++;
+  const div = document.createElement('div');
+  div.className = 'stim-entry';
+  div.id = 'fsh-row-' + fshCount;
+  div.innerHTML = `
+    <input type="date" id="fsh-date-${fshCount}" style="max-width:150px">
+    <select id="fsh-drug-${fshCount}">
+      <option>Gonal-F (follitropin alfa)</option>
+      <option>Puregon (follitropin beta)</option>
+      <option>Menopur (hMG)</option>
+      <option>Fostimon (HP-FSH)</option>
+      <option>Bemfola</option>
+      <option>Elonva (corifollitropin alfa)</option>
+      <option>Rekovelle (follitropin delta)</option>
+      <option>Pergoveris (FSH+LH)</option>
+      <option>Other</option>
+    </select>
+    <input type="text" id="fsh-dose-${fshCount}" placeholder="Dose (IU)" style="max-width:120px">
+    <button class="rm" onclick="document.getElementById('fsh-row-${fshCount}').remove()">✕</button>`;
+  document.getElementById('fsh-log').appendChild(div);
+}
+
+// AFC auto-sum
+window.addEventListener('DOMContentLoaded', () => {
+  addFshRow();
+  ['f-afc-r','f-afc-l'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.addEventListener('input', () => {
+      const r = parseInt(v('f-afc-r')) || 0;
+      const l = parseInt(v('f-afc-l')) || 0;
+      const tot = document.getElementById('f-afc-total');
+      if (tot) tot.value = (r + l) || '';
+    });
+  });
+});
+</script>
+
+</body>
+</html>
