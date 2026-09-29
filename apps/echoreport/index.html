@@ -1,0 +1,3621 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="EchoReport">
+<link rel="manifest" href="manifest.json">
+<title>EchoReport – Dr. Johnny Barakat</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<style>
+/* ===================== DESIGN TOKENS ===================== */
+:root {
+  --ink:#0e1117; --ink2:#1e2330; --ink3:#3a4155; --ink4:#5a6278;
+  --mist:#8892a4; --cloud:#c4c9d6; --fog:#e6e8ef; --paper:#f4f5f8; --white:#fff;
+  --gold:#b8935a; --gold2:#d4af7a; --gold-light:#f0e4cc; --gold-xlight:#faf5ed;
+  --accent:#2d6a9f; --accent2:#4a88bf; --accent-light:#ddeaf5;
+  --red:#c0392b; --red-light:#fdecea; --green:#219653;
+  --radius:14px; --radius-sm:8px; --radius-xs:5px;
+  --shadow-sm:0 1px 4px rgba(14,17,23,.07);
+  --shadow-md:0 4px 18px rgba(14,17,23,.10);
+  --shadow-lg:0 12px 48px rgba(14,17,23,.15);
+  --t:.22s cubic-bezier(.4,0,.2,1);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{font-size:16px;-webkit-text-size-adjust:100%;scroll-behavior:smooth}
+body{font-family:'DM Sans',sans-serif;background:var(--paper);color:var(--ink);min-height:100dvh;overflow-x:hidden}
+
+/* ===================== SCREENS ===================== */
+.screen{display:none;flex-direction:column;min-height:100dvh}
+.screen.active{display:flex}
+
+/* ===================== TOPBAR ===================== */
+.topbar{
+  background:var(--ink);color:var(--white);
+  padding:0 20px;height:60px;
+  display:flex;align-items:center;gap:12px;
+  position:sticky;top:0;z-index:200;flex-shrink:0;
+}
+.topbar-back{
+  background:none;border:none;color:var(--gold2);cursor:pointer;
+  font-family:'DM Sans',sans-serif;font-size:13px;font-weight:500;
+  padding:8px 10px;border-radius:7px;display:flex;align-items:center;gap:5px;
+  transition:background var(--t);white-space:nowrap;
+}
+.topbar-back:hover{background:rgba(255,255,255,.08)}
+.topbar-title{flex:1;font-family:'Cormorant Garamond',serif;font-size:19px;font-weight:400;letter-spacing:.02em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+/* ===================== CONTENT ===================== */
+.content{flex:1;overflow-y:auto;padding:24px 22px 110px;max-width:880px;margin:0 auto;width:100%}
+@media(max-width:600px){.content{padding:18px 14px 100px}.topbar{padding:0 14px}}
+
+/* ===================== HOME ===================== */
+.home-hero{
+  background:linear-gradient(140deg,var(--ink) 0%,var(--ink2) 100%);
+  color:var(--white);padding:44px 28px 36px;text-align:center;position:relative;overflow:hidden;
+}
+.home-hero::before{
+  content:'';position:absolute;inset:0;
+  background:radial-gradient(ellipse 70% 90% at 50% -10%,rgba(184,147,90,.2) 0%,transparent 70%);
+}
+.hero-eyebrow{font-family:'Cormorant Garamond',serif;font-size:12px;font-weight:300;letter-spacing:.38em;text-transform:uppercase;color:var(--gold2);margin-bottom:8px;position:relative}
+.hero-name{font-family:'Cormorant Garamond',serif;font-size:clamp(28px,5vw,42px);font-weight:400;line-height:1.1;position:relative}
+.hero-name em{color:var(--gold2);font-style:italic}
+.hero-spec{font-size:12px;color:var(--mist);margin-top:9px;font-weight:300;letter-spacing:.05em;line-height:1.85;position:relative}
+.gold-rule{width:48px;height:1px;background:var(--gold);margin:18px auto;position:relative}
+.home-body{padding:28px 20px;max-width:680px;margin:0 auto}
+.home-section-title{font-family:'Cormorant Garamond',serif;font-size:21px;color:var(--ink2);margin-bottom:16px;font-weight:400}
+
+/* ===================== EXAM CARDS ===================== */
+.exam-cards{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:32px}
+@media(max-width:560px){.exam-cards{grid-template-columns:1fr;gap:10px}}
+.exam-card{
+  background:var(--white);border:1.5px solid var(--fog);border-radius:var(--radius);
+  padding:22px 16px;cursor:pointer;transition:all var(--t);text-align:center;
+}
+.exam-card:hover{border-color:var(--gold);box-shadow:var(--shadow-md);transform:translateY(-2px)}
+.exam-card-icon{font-size:30px;margin-bottom:10px;display:block}
+.exam-card-title{font-family:'Cormorant Garamond',serif;font-size:17px;font-weight:500;color:var(--ink);margin-bottom:4px}
+.exam-card-desc{font-size:11px;color:var(--mist);line-height:1.5}
+
+/* ===================== REPORT LIST ===================== */
+.reports-list{display:flex;flex-direction:column;gap:9px}
+.report-item{
+  background:var(--white);border:1px solid var(--fog);border-radius:var(--radius-sm);
+  padding:13px 16px;display:flex;align-items:center;gap:12px;
+  cursor:pointer;transition:all var(--t);
+}
+.report-item:hover{box-shadow:var(--shadow-sm);border-color:var(--cloud)}
+.rpt-icon{font-size:20px;flex-shrink:0}
+.rpt-info{flex:1;min-width:0}
+.rpt-name{font-size:14px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rpt-meta{font-size:11px;color:var(--mist);margin-top:2px}
+.rpt-actions{display:flex;gap:7px;flex-shrink:0}
+.btn-icon{
+  background:none;border:1px solid var(--fog);border-radius:6px;
+  padding:6px 10px;cursor:pointer;font-size:13px;color:var(--ink3);
+  transition:all var(--t);font-family:'DM Sans',sans-serif;
+}
+.btn-icon:hover{background:var(--fog)}
+.btn-icon.del:hover{background:var(--red-light);border-color:#f5c6c3;color:var(--red)}
+.empty-msg{text-align:center;padding:28px;color:var(--mist);font-size:14px}
+
+/* ===================== FORM SECTIONS ===================== */
+.form-section{background:var(--white);border:1px solid var(--fog);border-radius:var(--radius);margin-bottom:18px;overflow:hidden}
+.form-section-hd{
+  padding:14px 20px;background:var(--ink);color:var(--white);
+  display:flex;align-items:center;gap:10px;
+}
+.form-section-hd h3{font-family:'Cormorant Garamond',serif;font-size:17px;font-weight:400;flex:1}
+.form-section-hd .ico{font-size:17px}
+.form-section-body{padding:20px}
+
+/* ===================== FIELDS ===================== */
+.fg{flex:1;min-width:0}
+.fl{display:block;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.09em;color:var(--ink3);margin-bottom:7px}
+.fl-sm{display:block;font-size:10px;font-weight:500;text-transform:uppercase;letter-spacing:.07em;color:var(--ink4);margin-bottom:5px}
+.req{color:var(--red)}
+.fi{
+  width:100%;background:var(--paper);border:1.5px solid var(--fog);border-radius:var(--radius-sm);
+  padding:10px 13px;font-family:'DM Sans',sans-serif;font-size:14px;color:var(--ink);
+  outline:none;transition:border-color var(--t);-webkit-appearance:none;
+}
+.fi:focus{border-color:var(--gold);background:var(--white)}
+.fta{
+  width:100%;background:var(--paper);border:1.5px solid var(--fog);border-radius:var(--radius-sm);
+  padding:10px 13px;font-family:'DM Sans',sans-serif;font-size:14px;color:var(--ink);
+  outline:none;transition:border-color var(--t);resize:vertical;min-height:75px;line-height:1.6;
+}
+.fta:focus{border-color:var(--gold);background:var(--white)}
+select.fi{cursor:pointer}
+.hint{font-size:11px;color:var(--mist);margin-top:5px;line-height:1.5}
+.hint-inline{color:var(--mist);font-size:11px;font-weight:400}
+.hint-block{
+  background:var(--accent-light);border-left:3px solid var(--accent);
+  padding:9px 14px;border-radius:0 var(--radius-xs) var(--radius-xs) 0;
+  font-size:12px;color:var(--accent);margin-bottom:18px;line-height:1.5;
+}
+.fs-row{display:flex;gap:16px;margin-bottom:18px;flex-wrap:wrap}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media(max-width:480px){.grid2{grid-template-columns:1fr}}
+.divider{height:1px;background:var(--fog);margin:18px 0}
+
+/* ===================== CHIPS ===================== */
+.chips{display:flex;flex-wrap:wrap;gap:7px}
+.chip{
+  background:var(--paper);border:1.5px solid var(--fog);border-radius:30px;
+  padding:6px 14px;font-size:12.5px;cursor:pointer;transition:all var(--t);
+  font-family:'DM Sans',sans-serif;color:var(--ink3);white-space:nowrap;line-height:1.3;
+}
+.chip:hover{border-color:var(--cloud);color:var(--ink)}
+.chip.on{background:var(--ink);border-color:var(--ink);color:var(--white)}
+
+/* ===================== PROBE BUTTONS ===================== */
+.probe-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}
+@media(max-width:400px){.probe-grid{grid-template-columns:1fr 1fr}}
+.probe-btn{
+  background:var(--white);border:2px solid var(--fog);border-radius:var(--radius);
+  padding:16px 12px;text-align:center;cursor:pointer;transition:all var(--t);
+}
+.probe-btn:hover{border-color:var(--gold)}
+.probe-btn.on{border-color:var(--gold);background:var(--gold-xlight)}
+.probe-icon{font-size:28px;display:block;margin-bottom:8px}
+.probe-label{font-size:13px;font-weight:500;color:var(--ink)}
+.probe-sub{font-size:11px;color:var(--mist);margin-top:2px}
+
+/* ===================== MEASUREMENTS ===================== */
+.mt{width:100%;border-collapse:collapse;font-size:13px}
+.mt th{background:var(--paper);padding:8px 10px;text-align:left;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--ink3);border-bottom:1px solid var(--fog)}
+.mt td{padding:6px 8px;border-bottom:1px solid var(--fog)}
+.mt tr:last-child td{border-bottom:none}
+.mi{background:var(--paper);border:1px solid var(--fog);border-radius:5px;padding:5px 8px;font-size:13px;font-family:'DM Sans',sans-serif;width:100%;outline:none;color:var(--ink)}
+.mi:focus{border-color:var(--gold)}
+
+.mt-bio{width:100%;border-collapse:collapse;font-size:12.5px;margin-bottom:6px}
+.mt-bio th{background:var(--ink);color:var(--white);padding:9px 10px;text-align:left;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.06em}
+.mt-bio td{padding:7px 8px;border-bottom:1px solid var(--fog);vertical-align:middle}
+.mt-bio tr:hover td{background:var(--gold-xlight)}
+.bio-label{display:block;font-size:12px;color:var(--ink);font-weight:500}
+.bio-trim{display:block;font-size:10px;color:var(--mist);margin-top:1px}
+
+/* ===================== CONDITIONAL BLOCKS ===================== */
+.conditional-block{
+  background:var(--gold-xlight);border:1px solid var(--gold-light);
+  border-radius:var(--radius-sm);padding:16px;margin-top:10px;margin-bottom:10px;
+}
+.conditional-title{font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:var(--gold);margin-bottom:14px}
+
+/* ===================== TABS ===================== */
+.tabs{display:flex;gap:0;border-bottom:2px solid var(--fog);margin-bottom:22px;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+.tabs::-webkit-scrollbar{display:none}
+.tab-btn{
+  padding:11px 18px;background:none;border:none;border-bottom:2.5px solid transparent;
+  margin-bottom:-2px;cursor:pointer;font-family:'DM Sans',sans-serif;font-size:13px;
+  font-weight:500;color:var(--mist);white-space:nowrap;transition:all var(--t);flex-shrink:0;
+}
+.tab-btn:hover{color:var(--ink)}
+.tab-btn.active{color:var(--gold);border-bottom-color:var(--gold)}
+.tab-panel{display:none}
+.tab-panel.active{display:block}
+
+/* ===================== IMAGES ===================== */
+.upload-zone{
+  border:2px dashed var(--cloud);border-radius:var(--radius);padding:26px;
+  text-align:center;cursor:pointer;transition:all var(--t);background:var(--paper);position:relative;
+}
+.upload-zone:hover,.upload-zone.drag{border-color:var(--gold);background:var(--gold-xlight)}
+.upload-zone input{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%}
+.upload-icon{font-size:34px;margin-bottom:8px;color:var(--mist)}
+.upload-text{font-size:14px;color:var(--ink3)}
+.upload-sub{font-size:11px;color:var(--mist);margin-top:3px}
+.images-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:9px;margin-top:14px}
+.img-thumb{position:relative;border-radius:var(--radius-sm);overflow:hidden;aspect-ratio:1;background:var(--ink2)}
+.img-thumb img{width:100%;height:100%;object-fit:cover}
+.img-remove{position:absolute;top:3px;right:3px;background:rgba(0,0,0,.6);color:#fff;border:none;border-radius:50%;width:21px;height:21px;font-size:11px;cursor:pointer;display:flex;align-items:center;justify-content:center}
+.img-cap{position:absolute;bottom:0;left:0;right:0;background:rgba(0,0,0,.5);color:#fff;font-size:10px;padding:3px 5px;text-align:center}
+
+/* ===================== BIRADS ===================== */
+.chips-birads{gap:8px}
+.birads-chip{border-radius:50%;width:42px;height:42px;display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:600;padding:0}
+.birads-0{border-color:var(--cloud)}.birads-0.on{background:#78909c;border-color:#78909c;color:#fff}
+.birads-1{border-color:#a5d6a7}.birads-1.on{background:#388e3c;border-color:#388e3c;color:#fff}
+.birads-2{border-color:#c8e6c9}.birads-2.on{background:#66bb6a;border-color:#66bb6a;color:#fff}
+.birads-3{border-color:#fff9c4}.birads-3.on{background:#f9a825;border-color:#f9a825;color:#fff}
+.birads-4{border-color:#ffccbc}.birads-4.on{background:#e64a19;border-color:#e64a19;color:#fff}
+.birads-5{border-color:#ef9a9a}.birads-5.on{background:#b71c1c;border-color:#b71c1c;color:#fff}
+.birads-6{border-color:#ce93d8}.birads-6.on{background:#6a1b9a;border-color:#6a1b9a;color:#fff}
+.birads-legend{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:18px}
+.birads-leg-item{display:flex;align-items:center;gap:9px;font-size:12px;color:var(--ink3)}
+.birads-dot{display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;border-radius:50%;font-size:12px;font-weight:700;flex-shrink:0}
+.bd-0{background:#78909c;color:#fff}.bd-1{background:#388e3c;color:#fff}.bd-2{background:#66bb6a;color:#fff}
+.bd-3{background:#f9a825;color:#fff}.bd-4{background:#e64a19;color:#fff}.bd-5{background:#b71c1c;color:#fff}.bd-6{background:#6a1b9a;color:#fff}
+
+/* ===================== ACTION BAR ===================== */
+.action-bar{
+  position:fixed;bottom:0;left:0;right:0;
+  background:rgba(255,255,255,.96);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);
+  border-top:1px solid var(--fog);
+  padding:12px 18px calc(12px + var(--safe-bottom));
+  display:flex;gap:10px;z-index:100;
+}
+.btn-pri{
+  flex:1;background:var(--ink);color:var(--white);border:none;border-radius:var(--radius-sm);
+  padding:13px 16px;font-family:'DM Sans',sans-serif;font-size:13.5px;font-weight:500;
+  cursor:pointer;transition:all var(--t);display:flex;align-items:center;justify-content:center;gap:7px;white-space:nowrap;
+}
+.btn-pri:hover{background:var(--ink2);transform:translateY(-1px)}
+.btn-pri:active{transform:none}
+.btn-pri.gold{background:var(--gold);color:var(--ink)}
+.btn-pri.gold:hover{background:var(--gold2)}
+.btn-pri.blue{background:var(--accent)}
+.btn-pri.blue:hover{background:var(--accent2)}
+.btn-pri.green{background:var(--green)}
+.btn-sec{
+  background:var(--paper);color:var(--ink);border:1.5px solid var(--fog);border-radius:var(--radius-sm);
+  padding:13px 14px;font-family:'DM Sans',sans-serif;font-size:13.5px;font-weight:500;
+  cursor:pointer;transition:all var(--t);display:flex;align-items:center;justify-content:center;gap:7px;white-space:nowrap;
+}
+.btn-sec:hover{background:var(--fog);border-color:var(--cloud)}
+@media(max-width:420px){.btn-pri,.btn-sec{font-size:12px;padding:11px 10px}}
+
+/* ===================== REPORT PREVIEW ===================== */
+.rpt-wrap{background:var(--white);border:1px solid var(--fog);border-radius:var(--radius);padding:40px 44px;box-shadow:var(--shadow-md)}
+@media(max-width:600px){.rpt-wrap{padding:22px 18px}}
+.rpt-header{border-bottom:2px solid var(--ink);padding-bottom:18px;margin-bottom:22px;display:flex;justify-content:space-between;align-items:flex-start;gap:14px;flex-wrap:wrap}
+.rpt-doctor{font-family:'Cormorant Garamond',serif;font-size:25px;font-weight:400}
+.rpt-doctor em{color:var(--gold);font-style:italic}
+.rpt-spec{font-size:11.5px;color:var(--ink3);margin-top:4px;line-height:1.75}
+.rpt-logo{text-align:right}
+.rpt-logo-txt{font-family:'Cormorant Garamond',serif;font-size:16px;color:var(--gold);letter-spacing:.12em;font-weight:500}
+.rpt-logo-sub{font-size:10px;color:var(--mist);margin-top:2px}
+.rpt-title-bar{font-family:'Cormorant Garamond',serif;font-size:19px;font-weight:500;color:var(--white);background:var(--ink);padding:10px 18px;border-radius:var(--radius-sm);margin-bottom:18px;text-align:center;letter-spacing:.04em}
+.rpt-meta{width:100%;border-collapse:collapse;margin-bottom:22px;font-size:12.5px}
+.rpt-meta td{padding:6px 10px;border:1px solid var(--fog)}
+.rpt-meta td:first-child{background:var(--paper);font-weight:600;color:var(--ink3);font-size:10.5px;text-transform:uppercase;letter-spacing:.06em;width:32%}
+.rpt-sec-title{font-family:'Cormorant Garamond',serif;font-size:15px;font-weight:500;color:var(--ink);border-left:3px solid var(--gold);padding-left:11px;margin:20px 0 9px;text-transform:uppercase;letter-spacing:.05em}
+.rpt-para{font-size:13.5px;color:var(--ink2);line-height:1.85;text-align:justify;margin-bottom:10px}
+.rpt-imgs{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:14px 0}
+.rpt-imgs img{width:100%;border-radius:6px;border:1px solid var(--fog)}
+.rpt-conclusion{background:var(--gold-xlight);border-left:4px solid var(--gold);padding:13px 17px;border-radius:0 var(--radius-sm) var(--radius-sm) 0;margin-top:18px;font-size:13.5px;line-height:1.7}
+.rpt-footer{margin-top:34px;padding-top:16px;border-top:1px solid var(--fog);display:flex;justify-content:space-between;align-items:flex-end;font-size:11.5px;color:var(--mist);flex-wrap:wrap;gap:12px}
+.rpt-sig{text-align:right}
+.rpt-sig-line{width:140px;height:1px;background:var(--cloud);margin:22px 0 6px auto}
+.rpt-sig-name{font-family:'Cormorant Garamond',serif;font-size:15px;color:var(--ink);font-style:italic}
+.rpt-sig-sub{font-size:10.5px;color:var(--mist);margin-top:2px}
+
+/* ===================== TOAST ===================== */
+.toast{
+  position:fixed;bottom:88px;left:50%;transform:translateX(-50%) translateY(16px);
+  background:var(--ink);color:var(--white);padding:11px 22px;border-radius:30px;
+  font-size:13px;z-index:9999;opacity:0;transition:all .3s;pointer-events:none;white-space:nowrap;
+}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+/* ===================== PRINT ===================== */
+@media print{
+  .topbar,.action-bar,#screen-home,#screen-info,#screen-findings,.toast{display:none!important}
+  #screen-preview{display:block!important}
+  .content{padding:0!important;max-width:100%!important}
+  .rpt-wrap{box-shadow:none!important;border:none!important;padding:0!important}
+  body{background:white!important}
+}
+
+/* ===================== MISC ===================== */
+input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none}
+input[type=date]{color-scheme:light}
+
+/* ===================== LANGUAGE SELECTOR ===================== */
+.lang-selector{display:flex;align-items:center;gap:10px;background:var(--white);border:1.5px solid var(--fog);border-radius:30px;padding:8px 18px;margin:0 auto 4px;width:fit-content}
+.lang-selector-label{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.1em;color:var(--mist)}
+.lang-btn{background:none;border:1.5px solid var(--fog);border-radius:20px;padding:6px 18px;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:500;cursor:pointer;color:var(--ink3);transition:all var(--t);display:flex;align-items:center;gap:6px}
+.lang-btn:hover{border-color:var(--gold);color:var(--ink)}
+.lang-btn.active{background:var(--ink);border-color:var(--ink);color:var(--white)}
+.lang-btn .flag{font-size:16px}
+
+.sig-modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:10000;align-items:center;justify-content:center;padding:20px}
+.sig-modal-overlay.open{display:flex}
+.sig-modal{background:#fff;border-radius:20px;padding:28px 24px;width:100%;max-width:440px;box-shadow:0 24px 64px rgba(0,0,0,.3)}
+.sig-modal-title{font-family:'Cormorant Garamond',serif;font-size:22px;color:var(--ink);margin-bottom:4px}
+.sig-modal-sub{font-size:12px;color:var(--mist);margin-bottom:20px;line-height:1.5}
+.sig-canvas-wrap{border:2px solid var(--fog);border-radius:var(--radius-sm);background:var(--paper);overflow:hidden;position:relative;touch-action:none}
+.sig-canvas-wrap canvas{display:block;width:100%;cursor:crosshair;touch-action:none}
+.sig-canvas-label{position:absolute;bottom:8px;left:50%;transform:translateX(-50%);font-size:11px;color:var(--cloud);pointer-events:none;white-space:nowrap}
+.sig-btns{display:flex;gap:10px;margin-top:14px}
+.sig-btn-clear{flex:1;background:var(--paper);border:1.5px solid var(--fog);border-radius:var(--radius-sm);padding:12px;font-family:'DM Sans',sans-serif;font-size:13px;color:var(--ink3);cursor:pointer;transition:all var(--t)}
+.sig-btn-clear:hover{background:var(--fog)}
+.sig-btn-save{flex:2;background:var(--ink);border:none;border-radius:var(--radius-sm);padding:12px;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:500;color:#fff;cursor:pointer;transition:all var(--t)}
+.sig-btn-save:hover{background:var(--ink2)}
+.sig-btn-cancel{flex:1;background:none;border:1.5px solid var(--fog);border-radius:var(--radius-sm);padding:12px;font-family:'DM Sans',sans-serif;font-size:13px;color:var(--mist);cursor:pointer;transition:all var(--t)}
+.sig-btn-cancel:hover{border-color:var(--cloud);color:var(--ink)}
+.sig-preview-wrap{border:1px solid var(--fog);border-radius:var(--radius-sm);background:var(--paper);padding:10px;text-align:center;margin-top:6px}
+.sig-preview-wrap img{max-height:60px;max-width:100%}
+.sig-status{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--green);margin-top:8px}
+.sig-status.none{color:var(--mist)}
+.rpt-sig-img{max-height:56px;max-width:180px;display:block;margin:0 0 6px auto}
+</style>
+</head>
+<body>
+
+<!-- ==================== HOME ==================== -->
+<div class="screen active" id="screen-home">
+  <div class="home-hero">
+    <div class="hero-eyebrow" id="hero-eyebrow">Rapport Échographique</div>
+    <div class="hero-name">Dr.&nbsp;<em>Johnny Barakat</em></div>
+    <div class="hero-spec">Gynécologie · Infertilité · Onco-Gynécologie<br>Échographie Gynécologique &amp; Sénologique</div>
+    <div class="gold-rule"></div>
+  </div>
+
+  <!-- LANGUAGE SELECTOR -->
+  <div style="background:var(--paper);padding:18px 20px 0;text-align:center">
+    <div class="lang-selector">
+      <span class="lang-selector-label" id="lang-label">Langue / Language</span>
+      <button class="lang-btn active" id="lang-fr" onclick="setLang('fr')"><span class="flag">🇫🇷</span> Français</button>
+      <button class="lang-btn" id="lang-en" onclick="setLang('en')"><span class="flag">🇬🇧</span> English</button>
+    </div>
+  </div>
+
+  <div class="home-body">
+    <h2 class="home-section-title">Nouvel examen</h2>
+    <div class="exam-cards">
+      <div class="exam-card" onclick="startExam('gyn')">
+        <span class="exam-card-icon">🫀</span>
+        <div class="exam-card-title">Pelvienne</div>
+        <div class="exam-card-desc">Utérus, ovaires, endomètre, col</div>
+      </div>
+      <div class="exam-card" onclick="startExam('obs')">
+        <span class="exam-card-icon">🤰</span>
+        <div class="exam-card-title">Obstétricale</div>
+        <div class="exam-card-desc">Grossesse, biométrie, morphologie</div>
+      </div>
+      <div class="exam-card" onclick="startExam('sein')">
+        <span class="exam-card-icon">🔬</span>
+        <div class="exam-card-title">Sénologique</div>
+        <div class="exam-card-desc">Sein, BIRADS, axillaires</div>
+      </div>
+    </div>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+      <h2 class="home-section-title" style="margin-bottom:0">Rapports récents</h2>
+      <button class="btn-icon del" id="btn-clear-all" onclick="clearAll()" style="display:none">🗑 Effacer tout</button>
+    </div>
+    <div class="reports-list" id="reports-list">
+      <div class="empty-msg" id="empty-msg">Aucun rapport enregistré</div>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== INFO ==================== -->
+<div class="screen" id="screen-info">
+  <div class="topbar">
+    <button class="topbar-back" onclick="goTo('screen-home')">← Accueil</button>
+    <div class="topbar-title" id="info-title">Informations</div>
+  </div>
+  <div class="content">
+
+    <div class="form-section">
+      <div class="form-section-hd"><span class="ico">🔭</span><h3>Sonde échographique – Machine Vinno</h3></div>
+      <div class="form-section-body">
+        <div class="probe-grid">
+          <div class="probe-btn" id="pb-vaginale" onclick="selectProbe('vaginale')">
+            <span class="probe-icon">🔬</span><div class="probe-label">Vaginale</div><div class="probe-sub">Endocavitaire 2D</div>
+          </div>
+          <div class="probe-btn" id="pb-abdominale-2d" onclick="selectProbe('abdominale-2d')">
+            <span class="probe-icon">📡</span><div class="probe-label">Abdominale 2D</div><div class="probe-sub">Convexe sus-pubienne</div>
+          </div>
+          <div class="probe-btn" id="pb-abdominale-3d" onclick="selectProbe('abdominale-3d')">
+            <span class="probe-icon">🧊</span><div class="probe-label">Abdominale 3D</div><div class="probe-sub">Volumique 3D/4D</div>
+          </div>
+          <div class="probe-btn" id="pb-lineaire" onclick="selectProbe('lineaire')">
+            <span class="probe-icon">📏</span><div class="probe-label">Linéaire HF</div><div class="probe-sub">Haute fréquence</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="form-section">
+      <div class="form-section-hd"><span class="ico">👤</span><h3>Patiente &amp; Date</h3></div>
+      <div class="form-section-body">
+        <div class="grid2" style="margin-bottom:16px">
+          <div>
+            <label class="fl">Nom de la patiente <span class="req">*</span></label>
+            <input type="text" id="patient-name" class="fi" placeholder="Nom Prénom" autocomplete="off">
+          </div>
+          <div>
+            <label class="fl">Date de naissance</label>
+            <input type="date" id="patient-dob" class="fi">
+          </div>
+        </div>
+        <div class="grid2">
+          <div>
+            <label class="fl">Date de l'examen <span class="req">*</span></label>
+            <input type="date" id="exam-date" class="fi">
+          </div>
+          <div>
+            <label class="fl">Médecin référent</label>
+            <input type="text" id="ref-doctor" class="fi" placeholder="Dr. ..." value="Dr. Johnny Barakat">
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="form-section">
+      <div class="form-section-hd"><span class="ico">📋</span><h3>Indication clinique</h3></div>
+      <div class="form-section-body">
+        <label class="fl">Sélectionner l'indication (un ou plusieurs)</label>
+        <div class="chips" id="indication-chips" style="margin-bottom:16px"></div>
+        <label class="fl">Indication libre / complémentaire</label>
+        <textarea id="indication-free" class="fta" rows="2" placeholder="Préciser si nécessaire..."></textarea>
+      </div>
+    </div>
+
+  </div>
+  <div class="action-bar">
+    <button class="btn-sec" onclick="goTo('screen-home')">← Retour</button>
+    <button class="btn-sec" onclick="clearInfoFields()" style="color:var(--red);border-color:#f5c6c3" title="Effacer tous les champs">🗑 Effacer</button>
+    <button class="btn-pri gold" onclick="goToFindings()">Données écho →</button>
+  </div>
+</div>
+
+<!-- ==================== FINDINGS ==================== -->
+<div class="screen" id="screen-findings">
+  <div class="topbar">
+    <button class="topbar-back" onclick="goTo('screen-info')">← Retour</button>
+    <div class="topbar-title" id="findings-title">Données échographiques</div>
+  </div>
+  <div class="content">
+    <div class="tabs" id="findings-tabs"></div>
+    <div id="findings-panels"></div>
+
+    <div class="form-section">
+      <div class="form-section-hd"><span class="ico">🖼️</span><h3>Images échographiques</h3></div>
+      <div class="form-section-body">
+        <div class="upload-zone" id="upload-zone">
+          <input type="file" id="img-input" accept="image/*" multiple onchange="handleImages(event)">
+          <div class="upload-icon">📁</div>
+          <div class="upload-text">Cliquer ou glisser-déposer</div>
+          <div class="upload-sub">JPG · PNG · BMP – depuis PC ou galerie iPhone</div>
+        </div>
+        <div class="images-grid" id="images-grid"></div>
+      </div>
+    </div>
+
+    <div class="form-section">
+      <div class="form-section-hd"><span class="ico">✍️</span><h3>Conclusion &amp; Recommandations</h3></div>
+      <div class="form-section-body">
+        <label class="fl">Conclusion</label>
+        <textarea id="conclusion" class="fta" rows="3" placeholder="Conclusion de l'examen..."></textarea>
+        <div style="height:14px"></div>
+        <label class="fl">Recommandations</label>
+        <textarea id="recommendations" class="fta" rows="2" placeholder="Recommandations au médecin référent..."></textarea>
+      </div>
+    </div>
+  </div>
+  <div class="action-bar">
+    <button class="btn-sec" onclick="goTo('screen-info')">← Retour</button>
+    <button class="btn-sec" onclick="clearFindingsFields()" style="color:var(--red);border-color:#f5c6c3" title="Effacer toutes les données">🗑 Effacer</button>
+    <button class="btn-pri blue" onclick="generatePreview()">Aperçu rapport →</button>
+  </div>
+</div>
+
+<!-- ==================== PREVIEW ==================== -->
+<div class="screen" id="screen-preview">
+  <div class="topbar">
+    <button class="topbar-back" onclick="goTo('screen-findings')">← Modifier</button>
+    <div class="topbar-title">Aperçu du rapport</div>
+  </div>
+  <div class="content">
+    <div class="rpt-wrap" id="rpt-content"></div>
+  </div>
+  <div class="action-bar" style="flex-wrap:wrap;gap:8px" id="preview-action-bar">
+    <button class="btn-sec" onclick="goTo('screen-findings')">✏️ Modifier</button>
+    <button class="btn-pri" onclick="openSigModal()" id="btn-sig" style="background:var(--ink3)">✍️ Signer</button>
+    <button class="btn-pri gold" onclick="savePDF()" id="btn-pdf">💾 PDF</button>
+    <button class="btn-pri" onclick="printReport()" id="btn-print">🖨️ Imprimer</button>
+    <button class="btn-pri blue" onclick="sharpDesk()" id="btn-sharp">📲 SharpDesk</button>
+  </div>
+
+  <!-- SIGNATURE MODAL -->
+  <div class="sig-modal-overlay" id="sig-modal-overlay">
+    <div class="sig-modal">
+      <div class="sig-modal-title">✍️ Signature électronique</div>
+      <div class="sig-modal-sub" id="sig-modal-sub">Signez dans le cadre ci-dessous. Elle sera mémorisée et apposée sur tous vos rapports.</div>
+
+      <!-- Saved signature display -->
+      <div id="sig-saved-area" style="display:none;margin-bottom:16px">
+        <div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:var(--ink3);margin-bottom:8px">Signature mémorisée</div>
+        <div class="sig-preview-wrap"><img id="sig-saved-preview" src="" alt="Signature"></div>
+        <div class="sig-status">✅ Signature enregistrée – utilisée sur tous les rapports</div>
+        <button onclick="resetSavedSig()" style="margin-top:10px;background:none;border:none;font-size:12px;color:var(--red);cursor:pointer;font-family:'DM Sans',sans-serif;padding:0">🗑 Effacer et re-signer</button>
+      </div>
+
+      <!-- Canvas for new signature -->
+      <div id="sig-new-area">
+        <div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:var(--ink3);margin-bottom:8px">Dessiner votre signature</div>
+        <div class="sig-canvas-wrap">
+          <canvas id="sig-canvas" height="160"></canvas>
+          <div class="sig-canvas-label">Signez ici avec votre doigt ou le stylet</div>
+        </div>
+        <div class="sig-btns">
+          <button class="sig-btn-clear" onclick="clearSigCanvas()">🗑 Effacer</button>
+          <button class="sig-btn-save" onclick="saveSig()">💾 Mémoriser et apposer</button>
+        </div>
+      </div>
+
+      <button class="sig-btn-cancel" style="width:100%;margin-top:12px" onclick="closeSigModal()">Fermer</button>
+    </div>
+  </div>
+  <!-- iOS PDF viewer modal -->
+  <div id="ios-pdf-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:9999;flex-direction:column;align-items:center;justify-content:center">
+    <div style="background:#fff;border-radius:18px;padding:28px 24px;max-width:340px;width:90%;text-align:center">
+      <div style="font-size:36px;margin-bottom:12px">📄</div>
+      <div style="font-family:'Cormorant Garamond',serif;font-size:20px;color:#0e1117;margin-bottom:8px">Rapport prêt</div>
+      <div style="font-size:13px;color:#5a6278;margin-bottom:20px;line-height:1.6" id="ios-pdf-hint">Votre PDF est généré. Appuyez sur <strong>Ouvrir</strong> pour le voir, l'imprimer ou le partager vers SharpDesk.</div>
+      <a id="ios-pdf-link" href="#" target="_blank" style="display:block;background:#b8935a;color:#fff;border-radius:10px;padding:14px;font-size:15px;font-weight:600;text-decoration:none;margin-bottom:12px">📂 Ouvrir le PDF</a>
+      <button onclick="document.getElementById('ios-pdf-modal').style.display='none'" style="width:100%;background:#f4f5f8;border:none;border-radius:10px;padding:13px;font-size:14px;color:#3a4155;cursor:pointer;font-family:'DM Sans',sans-serif">Fermer</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<!-- ==================== SCRIPTS ==================== -->
+<script>
+// ============================================================
+// MEDICAL DATA – EchoReport Dr. Johnny Barakat
+// Sources: SFEF, ISUOG, ACR BIRADS, FIGO, SFR
+// ============================================================
+
+window.MEDICAL = {
+
+// ============================================================
+// GYNECOLOGICAL PELVIENNE – CRITERIA
+// ============================================================
+gyn: {
+  label: 'Échographie Pelvienne Gynécologique',
+  icon: '🫀',
+  indications: [
+    'Douleurs pelviennes aiguës','Douleurs pelviennes chroniques',
+    'Ménorragie / hyperménorrhée','Métrorragie','Spotting intermenstruel',
+    'Dysménorrhée','Aménorrhée','Bilan d\'infertilité','Bilan hormonal (SOPK)',
+    'Masse pelvienne','Contrôle DIU','Suspicion endométriose',
+    'Suivi fibrome utérin','Bilan pré-opératoire','Post-ménopause',
+    'Dépistage cancer endomètre','Leucorrhées / infection pelvienne',
+    'Grossesse débutante / vitalité','Bilan post-fausse couche',
+    'Suivi traitement hormonal'
+  ],
+  tabs: [
+    { id: 'uterus', label: 'Utérus' },
+    { id: 'endometrium', label: 'Endomètre' },
+    { id: 'ovaire_d', label: 'Ovaire Droit' },
+    { id: 'ovaire_g', label: 'Ovaire Gauche' },
+    { id: 'douglas', label: 'Douglas / Trompes' },
+    { id: 'col', label: 'Col utérin' }
+  ]
+},
+
+// ============================================================
+// OBSTETRICAL – CRITERIA par trimestre
+// ============================================================
+obs: {
+  label: 'Échographie Obstétricale',
+  icon: '🤰',
+  indications: [
+    'Datation de grossesse','Vitalité fœtale','Clarté nucale T1',
+    'Morphologie fœtale T2 (22 SA)','Croissance fœtale T3',
+    'Menace d\'avortement / saignement','Menace d\'accouchement prématuré',
+    'RCIU (retard de croissance intra-utérin)','Macrosomie suspectée',
+    'Placenta praevia / bas inséré','Doppler fœtomaternelle',
+    'Hydramnios / oligoamnios','Suspicion malformation',
+    'Grossesse multiple','Post-terme','Rupture prématurée des membranes',
+    'HTA gravidique / prééclampsie','Diabète gestationnel',
+    'Suivi cerclage cervical','Bilan Rhésus / allo-immunisation'
+  ],
+  tabs: [
+    { id: 'grossesse', label: 'Grossesse / Terme' },
+    { id: 'biometrie', label: 'Biométrie fœtale' },
+    { id: 'anatomie_crane', label: 'Crâne / SNC' },
+    { id: 'anatomie_face', label: 'Face' },
+    { id: 'anatomie_thorax', label: 'Thorax / Cœur' },
+    { id: 'anatomie_abdomen', label: 'Abdomen' },
+    { id: 'anatomie_squelette', label: 'Squelette / Membres' },
+    { id: 'placenta_la', label: 'Placenta / LA' },
+    { id: 'doppler', label: 'Doppler' },
+    { id: 'col_obs', label: 'Col utérin' }
+  ]
+},
+
+// ============================================================
+// SENOLOGIQUE – ACR BIRADS + CRITERIA
+// ============================================================
+sein: {
+  label: 'Échographie Sénologique',
+  icon: '🔬',
+  indications: [
+    'Masse palpable sein droit','Masse palpable sein gauche',
+    'Douleur mammaire (mastodynie)','Écoulement mamelonnaire',
+    'Modification cutanée / rétraction','Dépistage (densité ACR C/D)',
+    'Bilan complémentaire post-mammographie','Suivi lésion classée BIRADS 3',
+    'Implant mammaire – contrôle','Adénopathie axillaire',
+    'Galactocèle / mastite','Bilan pré-biopsie','Guidage biopsie',
+    'Bilan post-chirurgie mammaire','Femme jeune < 30 ans',
+    'Grossesse / allaitement – anomalie mammaire'
+  ],
+  tabs: [
+    { id: 'sein_d', label: 'Sein Droit' },
+    { id: 'sein_g', label: 'Sein Gauche' },
+    { id: 'mamelon', label: 'Mamelons / Rétroaréolaire' },
+    { id: 'axillaire', label: 'Creux Axillaires' },
+    { id: 'birads', label: 'Classification BIRADS' }
+  ]
+}
+
+}; // end MEDICAL
+
+
+// ============================================================
+// NARRATIVE GENERATORS
+// ============================================================
+
+window.NARRATIVE = {
+
+// --- GYN NARRATIVE ---
+gyn(f, probe, examType) {
+  const get = k => Array.isArray(f[k]) ? f[k].filter(Boolean).join(', ') : (f[k] || '');
+  const has = k => !!get(k) && get(k) !== '';
+  const mm = (...keys) => keys.map(k => get(k) || '—').join(' × ') + ' mm';
+
+  let sections = [];
+
+  // INTRODUCTION
+  let intro = `L'examen échographique pelvien a été réalisé par voie ${probeNarrative(probe)}, sur appareil Vinno, dans de bonnes conditions techniques. `;
+  if (has('cycle_j')) intro += `L'examen est réalisé au ${get('cycle_j')}ème jour du cycle. `;
+  if (has('statut_hormonal')) intro += `La patiente est ${get('statut_hormonal')}. `;
+  sections.push({ title: null, text: intro });
+
+  // UTÉRUS
+  let utText = '';
+  if (has('uterus_position') || has('uterus_L')) {
+    utText += `L'utérus est en ${get('uterus_position') || 'position non précisée'}`;
+    if (has('uterus_forme')) utText += `, de forme ${get('uterus_forme')}`;
+    if (has('uterus_contours')) utText += `, à contours ${get('uterus_contours')}`;
+    utText += '. ';
+    if (has('uterus_L') || has('uterus_AP') || has('uterus_T')) {
+      utText += `Il mesure ${mm('uterus_L','uterus_AP','uterus_T')} (longueur × épaisseur antéropostérieure × largeur)`;
+      if (has('uterus_vol')) utText += `, pour un volume estimé à ${get('uterus_vol')} cm³`;
+      utText += '. ';
+    }
+    if (has('myometre_aspect')) utText += `Le myomètre est d'échostructure ${get('myometre_aspect')}. `;
+    if (has('myometre_pathologie') && get('myometre_pathologie') !== 'sans anomalie') {
+      utText += `On note la présence de ${get('myometre_pathologie')}. `;
+    }
+    if (has('fibrome_nb')) {
+      utText += `On individualise ${get('fibrome_nb')} fibrome(s) `;
+      if (has('fibrome_sieg')) utText += `de siège ${get('fibrome_sieg')} `;
+      if (has('fibrome_L') || has('fibrome_AP')) utText += `mesurant ${mm('fibrome_L','fibrome_AP','fibrome_T')} `;
+      if (has('fibrome_echo')) utText += `, d'échostructure ${get('fibrome_echo')} `;
+      if (has('fibrome_calc')) utText += `, ${get('fibrome_calc')} `;
+      utText += '. ';
+    }
+    if (has('adenomyose_type')) utText += `L'aspect échographique évoque une adénomyose ${get('adenomyose_type')}. `;
+    if (has('uterus_comments')) utText += get('uterus_comments') + ' ';
+  }
+  if (utText) sections.push({ title: 'UTÉRUS', text: utText });
+
+  // ENDOMÈTRE
+  let endText = '';
+  if (has('endo_ep') || has('endo_aspect')) {
+    if (has('endo_ep')) {
+      endText += `L'endomètre mesure ${get('endo_ep')} mm d'épaisseur`;
+      if (has('endo_phase')) endText += `, en phase ${get('endo_phase')}`;
+      endText += '. ';
+    }
+    if (has('endo_aspect')) endText += `Son aspect est ${get('endo_aspect')}. `;
+    if (has('endo_zone_jonct')) endText += `La zone jonctionnelle est ${get('endo_zone_jonct')}. `;
+    if (has('cavite_etat')) endText += `La cavité utérine est ${get('cavite_etat')}. `;
+    if (has('diu_position')) endText += `Le DIU est ${get('diu_position')}. `;
+    if (has('endo_comments')) endText += get('endo_comments') + ' ';
+    // Interpretation
+    if (has('endo_ep')) {
+      const ep = parseFloat(get('endo_ep'));
+      if (has('statut_hormonal') && get('statut_hormonal').includes('ménopaus')) {
+        if (ep > 4) endText += `⚠️ L'épaisseur endométriale dépasse le seuil de 4 mm en post-ménopause et nécessite une exploration complémentaire. `;
+        else endText += `L'épaisseur endométriale est dans les limites normales pour une femme ménopausée (≤ 4 mm). `;
+      }
+    }
+  }
+  if (endText) sections.push({ title: 'ENDOMÈTRE', text: endText });
+
+  // OVAIRE DROIT
+  let odText = buildOvaryNarrative(f, 'od', 'droit', has, get, mm);
+  if (odText) sections.push({ title: 'OVAIRE DROIT', text: odText });
+
+  // OVAIRE GAUCHE
+  let ogText = buildOvaryNarrative(f, 'og', 'gauche', has, get, mm);
+  if (ogText) sections.push({ title: 'OVAIRE GAUCHE', text: ogText });
+
+  // DOUGLAS / TROMPES
+  let douglasText = '';
+  if (has('douglas_etat')) {
+    douglasText += `Le cul-de-sac de Douglas est ${get('douglas_etat')}. `;
+    if (has('douglas_ep_liquide')) douglasText += `L'épanchement est estimé à ${get('douglas_ep_liquide')} mm de hauteur. `;
+  }
+  if (has('trompes_aspect')) {
+    douglasText += `Les trompes sont ${get('trompes_aspect')}. `;
+    if (has('hydrosalpinx_cote')) {
+      douglasText += `On met en évidence un hydrosalpinx ${get('hydrosalpinx_cote')}`;
+      if (has('hydrosalpinx_taille')) douglasText += ` mesurant ${get('hydrosalpinx_taille')} mm`;
+      douglasText += '. ';
+    }
+  }
+  if (has('douglas_comments')) douglasText += get('douglas_comments') + ' ';
+  if (douglasText) sections.push({ title: 'DOUGLAS / TROMPES', text: douglasText });
+
+  // COL
+  let colText = '';
+  if (has('col_long') || has('col_aspect')) {
+    if (has('col_long')) colText += `Le col utérin mesure ${get('col_long')} mm de longueur. `;
+    if (has('col_aspect')) colText += `Son aspect est ${get('col_aspect')}. `;
+    if (has('col_kyste_naboth')) colText += `On note la présence de ${get('col_kyste_naboth')}. `;
+    if (has('col_comments')) colText += get('col_comments') + ' ';
+  }
+  if (colText) sections.push({ title: 'COL UTÉRIN', text: colText });
+
+  return sections;
+},
+
+// --- OBS NARRATIVE ---
+obs(f, probe, gestAgeWeeks) {
+  const get = k => Array.isArray(f[k]) ? f[k].filter(Boolean).join(', ') : (f[k] || '');
+  const has = k => !!get(k) && get(k) !== '';
+  const mm = (...keys) => keys.map(k => get(k) || '—').join(' / ');
+
+  let sections = [];
+  const sa = gestAgeWeeks || parseInt(get('terme_clinique_sa')) || 0;
+
+  // INTRODUCTION
+  let intro = `L'examen échographique obstétrical a été réalisé par voie ${probeNarrative(probe)}, sur appareil Vinno. `;
+  if (has('grossesse_type')) intro += `Il s'agit d'une grossesse ${get('grossesse_type')}. `;
+  if (has('terme_clinique_sa')) {
+    intro += `Le terme clinique est de ${get('terme_clinique_sa')} semaines d'aménorrhée`;
+    if (has('terme_clinique_j')) intro += ` et ${get('terme_clinique_j')} jours`;
+    intro += '. ';
+  }
+  sections.push({ title: null, text: intro });
+
+  // VITALITÉ
+  let vitalText = '';
+  if (has('vitalite_bcf')) {
+    vitalText += `La vitalité fœtale est ${get('vitalite_bcf') === 'présents' ? 'confirmée, les bruits du cœur fœtal sont présents' : 'non confirmée, absence de bruits du cœur fœtal'}. `;
+    if (has('fc_foetale')) vitalText += `La fréquence cardiaque fœtale est de ${get('fc_foetale')} bpm (normale : 120-160 bpm). `;
+    if (has('mvts_actifs')) vitalText += `Les mouvements actifs fœtaux sont ${get('mvts_actifs')}. `;
+    if (has('tonus_foetal')) vitalText += `Le tonus fœtal est ${get('tonus_foetal')}. `;
+  }
+  if (vitalText) sections.push({ title: 'VITALITÉ FŒTALE', text: vitalText });
+
+  // BIOMÉTRIE
+  let bioText = '';
+  const bioParams = [
+    ['LCC','longueur cranio-caudale','mm','T1'],
+    ['BIP','diamètre bipariétal','mm','T2T3'],
+    ['DOF','diamètre occipito-frontal','mm','T2T3'],
+    ['CC','périmètre crânien','mm','T2T3'],
+    ['CA','périmètre abdominal','mm','T2T3'],
+    ['LF','longueur fémorale','mm','T2T3'],
+    ['LH','longueur humérale','mm','T2T3'],
+    ['CN','clarté nucale','mm','T1'],
+    ['CN_TN','translucence nucale','mm','T1'],
+    ['DAT','diamètre abdominal transverse','mm','T2T3'],
+    ['DAP','diamètre abdominal antéropostérieur','mm','T2T3']
+  ];
+  const biopresents = bioParams.filter(([k]) => has(k));
+  if (biopresents.length > 0) {
+    bioText += 'La biométrie fœtale est la suivante : ';
+    bioText += biopresents.map(([k,lbl,u]) => {
+      let s = `${lbl} (${k}) = ${get(k)} ${u}`;
+      if (has(k+'_sa')) s += ` (correspondant à ${get(k+'_sa')} SA)`;
+      if (has(k+'_pc')) s += ` [${get(k+'_pc')}e percentile]`;
+      return s;
+    }).join(' ; ') + '. ';
+
+    if (has('pfe')) {
+      bioText += `Le poids fœtal estimé (PFE) selon la formule de Hadlock est de ${get('pfe')} grammes`;
+      if (has('pfe_pc')) bioText += ` [${get('pfe_pc')}e percentile]`;
+      bioText += '. ';
+    }
+    if (has('terme_echo_sa')) {
+      bioText += `Le terme échographique moyen est de ${get('terme_echo_sa')} SA`;
+      if (has('terme_echo_j')) bioText += ` et ${get('terme_echo_j')} jours`;
+      bioText += '. ';
+    }
+    if (has('concordance_biometrie')) bioText += `La concordance biométrique est ${get('concordance_biometrie')}. `;
+    if (has('croissance_profil')) bioText += `Le profil de croissance est ${get('croissance_profil')}. `;
+  }
+  if (bioText) sections.push({ title: 'BIOMÉTRIE FŒTALE', text: bioText });
+
+  // ANATOMIE - CRANE
+  let craneText = buildAnatomySectionNarrative(f, has, get, [
+    ['crane_peau','Revêtement cutané crânien'],['crane_os','Voûte crânienne'],
+    ['crane_forme','Forme du crâne'],['faux_cerveau','Faux du cerveau'],
+    ['ventricules_lat','Ventricules latéraux'],['vent_lat_mes','Mesure ventricule latéral'],
+    ['3e_ventricule','3e ventricule'],['4e_ventricule','4e ventricule'],
+    ['cerebellum','Cervelet'],['diam_cerebellum','Diamètre cérébelleux transverse'],
+    ['citerne_magna','Citerne magna (CM)'],['diam_cm','Mesure CM'],
+    ['plexus_choroides','Plexus choroïdes'],['cavum_septum','Cavum du septum pellucidum'],
+    ['corps_calleux','Corps calleux'],['thalami','Thalami'],['meso','Mésencéphale']
+  ]);
+  if (craneText) sections.push({ title: 'CRÂNE / SYSTÈME NERVEUX CENTRAL', text: craneText });
+
+  // FACE
+  let faceText = buildAnatomySectionNarrative(f, has, get, [
+    ['orbites','Orbites'],['dist_interorb','Distance inter-orbitaire'],
+    ['nez','Nez / narines'],['os_nasal','Os nasal'],['os_nasal_mes','Mesure os nasal'],
+    ['levres','Lèvres'],['palais','Palais'],['profil_face','Profil facial'],
+    ['menton','Menton'],['oreilles','Oreilles'],['langue','Langue']
+  ]);
+  if (faceText) sections.push({ title: 'FACE', text: faceText });
+
+  // THORAX / CŒUR
+  let thoraxText = '';
+  if (has('thorax_forme')) thoraxText += `Le thorax est de forme ${get('thorax_forme')}. `;
+  if (has('cotes')) thoraxText += `Les côtes sont ${get('cotes')}. `;
+  if (has('poumons')) thoraxText += `Les poumons sont ${get('poumons')}. `;
+  if (has('coeur_position')) thoraxText += `Le cœur est en position ${get('coeur_position')}. `;
+  if (has('situs')) thoraxText += `Le situs est ${get('situs')}. `;
+  if (has('axe_coeur')) thoraxText += `L'axe cardiaque est de ${get('axe_coeur')}°. `;
+  if (has('coeur_taille')) thoraxText += `La taille cardiaque est ${get('coeur_taille')} (rapport cardiothoracique). `;
+  if (has('4_cavites')) thoraxText += `La coupe 4 cavités est ${get('4_cavites')}. `;
+  if (has('VD_VG')) thoraxText += `Les ventricules droit et gauche sont ${get('VD_VG')}. `;
+  if (has('OD_OG')) thoraxText += `Les oreillettes sont ${get('OD_OG')}. `;
+  if (has('septum_IV')) thoraxText += `Le septum interventriculaire est ${get('septum_IV')}. `;
+  if (has('septum_IA')) thoraxText += `Le septum interauriculaire est ${get('septum_IA')}. `;
+  if (has('voies_efferentes')) thoraxText += `Les voies efférentes (aorte et artère pulmonaire) sont ${get('voies_efferentes')}. `;
+  if (has('arche_aortique')) thoraxText += `L'arc aortique est ${get('arche_aortique')}. `;
+  if (has('veine_cave')) thoraxText += `La veine cave est ${get('veine_cave')}. `;
+  if (has('coeur_comments')) thoraxText += get('coeur_comments') + ' ';
+  if (thoraxText) sections.push({ title: 'THORAX / CŒUR', text: thoraxText });
+
+  // ABDOMEN
+  let abdoText = '';
+  if (has('paroi_abdominale')) abdoText += `La paroi abdominale est ${get('paroi_abdominale')} au niveau de l'insertion du cordon ombilical. `;
+  if (has('estomac')) abdoText += `L'estomac est ${get('estomac')}. `;
+  if (has('foie')) abdoText += `Le foie est ${get('foie')}. `;
+  if (has('vesicule_biliaire')) abdoText += `La vésicule biliaire est ${get('vesicule_biliaire')}. `;
+  if (has('intestin')) abdoText += `L'intestin est ${get('intestin')}. `;
+  if (has('reins_d') || has('reins_g')) abdoText += `Les reins sont ${has('reins_d') ? get('reins_d') + ' à droite' : ''} ${has('reins_g') ? 'et ' + get('reins_g') + ' à gauche' : ''}. `;
+  if (has('bassinet_d')) abdoText += `Le bassinet droit mesure ${get('bassinet_d')} mm. `;
+  if (has('bassinet_g')) abdoText += `Le bassinet gauche mesure ${get('bassinet_g')} mm. `;
+  if (has('vessie')) abdoText += `La vessie est ${get('vessie')}. `;
+  if (has('glandes_surrenales')) abdoText += `Les glandes surrénales sont ${get('glandes_surrenales')}. `;
+  if (has('cordon_ombilical')) abdoText += `Le cordon ombilical présente ${get('cordon_ombilical')}. `;
+  if (has('sexe_foetal')) abdoText += `Le sexe fœtal apparent est ${get('sexe_foetal')}. `;
+  if (has('abdomen_comments')) abdoText += get('abdomen_comments') + ' ';
+  if (abdoText) sections.push({ title: 'ABDOMEN / ORGANES', text: abdoText });
+
+  // SQUELETTE / MEMBRES
+  let skelText = '';
+  if (has('membres_sup')) skelText += `Les membres supérieurs sont ${get('membres_sup')} (bras, avant-bras, mains visualisées). `;
+  if (has('membres_inf')) skelText += `Les membres inférieurs sont ${get('membres_inf')} (cuisses, jambes, pieds visualisés). `;
+  if (has('colonne_vert')) skelText += `La colonne vertébrale est ${get('colonne_vert')}. `;
+  if (has('rachis_comments')) skelText += get('rachis_comments') + ' ';
+  if (skelText) sections.push({ title: 'SQUELETTE / MEMBRES', text: skelText });
+
+  // PLACENTA / LA
+  let placentaText = '';
+  if (has('placenta_loc')) {
+    placentaText += `Le placenta est localisé en position ${get('placenta_loc')}`;
+    if (has('placenta_grade')) placentaText += `, de maturation Grannum grade ${get('placenta_grade')}`;
+    if (has('placenta_ep')) placentaText += `, d'épaisseur ${get('placenta_ep')} mm`;
+    placentaText += '. ';
+    if (has('placenta_dist_orifice')) placentaText += `Il est distant de l'orifice interne du col de ${get('placenta_dist_orifice')} mm. `;
+    if (has('placenta_aspect')) placentaText += `Son aspect est ${get('placenta_aspect')}. `;
+    if (has('placenta_insert_cordon')) placentaText += `L'insertion du cordon est ${get('placenta_insert_cordon')}. `;
+  }
+  if (has('LA_aspect')) {
+    placentaText += `Le liquide amniotique est ${get('LA_aspect')}. `;
+    if (has('ILA')) placentaText += `L'index de liquide amniotique (ILA) est de ${get('ILA')} mm`;
+    if (has('grande_citerne')) placentaText += ` ; la plus grande citerne mesure ${get('grande_citerne')} mm`;
+    placentaText += '. ';
+  }
+  if (placentaText) sections.push({ title: 'PLACENTA / LIQUIDE AMNIOTIQUE', text: placentaText });
+
+  // DOPPLER
+  let dopplerText = '';
+  if (has('doppler_realise')) {
+    dopplerText += `Une étude Doppler a été réalisée sur ${get('doppler_realise')}. `;
+    if (has('ip_omb')) {
+      dopplerText += `L'artère ombilicale présente un index de pulsatilité (IP) à ${get('ip_omb')}`;
+      if (has('ip_omb_pc')) dopplerText += ` [${get('ip_omb_pc')}e percentile pour le terme]`;
+      if (has('diastole_omb')) dopplerText += ` ; la diastole est ${get('diastole_omb')}`;
+      dopplerText += '. ';
+    }
+    if (has('ip_acm')) {
+      dopplerText += `L'artère cérébrale moyenne (ACM) présente un IP à ${get('ip_acm')}`;
+      if (has('ip_acm_pc')) dopplerText += ` [${get('ip_acm_pc')}e percentile]`;
+      if (has('vpic_acm')) dopplerText += ` ; la vélocité pic systolique (VPS-ACM) est de ${get('vpic_acm')} cm/s`;
+      dopplerText += '. ';
+    }
+    if (has('ip_ut_d') || has('ip_ut_g')) {
+      dopplerText += 'Les artères utérines : ';
+      if (has('ip_ut_d')) dopplerText += `IP droite = ${get('ip_ut_d')} `;
+      if (has('ip_ut_g')) dopplerText += `IP gauche = ${get('ip_ut_g')} `;
+      if (has('notch_ut')) dopplerText += `; ${get('notch_ut')} `;
+      dopplerText += '. ';
+    }
+    if (has('ductus_venosus')) {
+      dopplerText += `Le ductus venosus présente un flux ${get('ductus_venosus')}. `;
+    }
+    if (has('ratio_cpc')) dopplerText += `Le ratio cérébro-placentaire (RCP) est à ${get('ratio_cpc')}. `;
+    if (has('doppler_interp')) dopplerText += `Interprétation : ${get('doppler_interp')}. `;
+  }
+  if (dopplerText) sections.push({ title: 'DOPPLER FŒTOMATERNELLE', text: dopplerText });
+
+  // COL OBS
+  let colObsText = '';
+  if (has('col_obs_long')) {
+    colObsText += `Le col utérin mesuré par voie endovaginale mesure ${get('col_obs_long')} mm de longueur. `;
+    if (parseFloat(get('col_obs_long')) < 25) colObsText += `⚠️ Cette longueur cervicale est inférieure au seuil de 25 mm, signant un col court. `;
+    if (has('col_obs_aspect')) colObsText += `Son aspect est ${get('col_obs_aspect')}. `;
+    if (has('col_obs_funnel')) colObsText += `On note ${get('col_obs_funnel')} `;
+    if (has('cerclage')) colObsText += `Un cerclage est en place, ${get('cerclage')}. `;
+    if (has('pessaire')) colObsText += `Un pessaire est en place. `;
+  }
+  if (colObsText) sections.push({ title: 'COL UTÉRIN', text: colObsText });
+
+  return sections;
+},
+
+// --- SEIN NARRATIVE ---
+sein(f, probe) {
+  const get = k => Array.isArray(f[k]) ? f[k].filter(Boolean).join(', ') : (f[k] || '');
+  const has = k => !!get(k) && get(k) !== '';
+  const mm = (...keys) => keys.map(k => get(k) || '—').join(' × ');
+
+  let sections = [];
+
+  // INTRO
+  let intro = `L'examen échographique sénologique a été réalisé par sonde ${probeNarrative(probe)} haute fréquence, sur appareil Vinno, avec étude comparative des deux seins et des creux axillaires. `;
+  sections.push({ title: null, text: intro });
+
+  // SEIN DROIT
+  let sdText = buildBreastNarrative(f, has, get, mm, 'D', 'droit');
+  if (sdText) sections.push({ title: 'SEIN DROIT', text: sdText });
+
+  // SEIN GAUCHE
+  let sgText = buildBreastNarrative(f, has, get, mm, 'G', 'gauche');
+  if (sgText) sections.push({ title: 'SEIN GAUCHE', text: sgText });
+
+  // MAMELON / RÉTROARÉOLAIRE
+  let mamText = '';
+  if (has('mamelon_d_aspect') || has('mamelon_g_aspect')) {
+    if (has('mamelon_d_aspect')) mamText += `Mamelon droit : ${get('mamelon_d_aspect')}. `;
+    if (has('mamelon_g_aspect')) mamText += `Mamelon gauche : ${get('mamelon_g_aspect')}. `;
+    if (has('retroareolaire_d')) mamText += `Région rétroaréolaire droite : ${get('retroareolaire_d')}. `;
+    if (has('retroareolaire_g')) mamText += `Région rétroaréolaire gauche : ${get('retroareolaire_g')}. `;
+    if (has('canaux_galactophores')) mamText += `Les canaux galactophores sont ${get('canaux_galactophores')}. `;
+    if (has('ecoulement_desc')) mamText += `Écoulement : ${get('ecoulement_desc')}. `;
+  }
+  if (mamText) sections.push({ title: 'MAMELON / RÉGION RÉTROARÉOLAIRE', text: mamText });
+
+  // AXILLAIRES
+  let axText = '';
+  ['D','G'].forEach(s => {
+    const S = s === 'D' ? 'droit' : 'gauche';
+    if (has(`ax_${s}_aspect`)) {
+      axText += `Creux axillaire ${S} : ${get(`ax_${s}_aspect`)}. `;
+      if (get(`ax_${s}_aspect`).includes('adénopathie')) {
+        if (has(`ax_${s}_nb`)) axText += `On met en évidence ${get(`ax_${s}_nb`)} adénopathie(s) `;
+        if (has(`ax_${s}_taille`)) axText += `mesurant jusqu'à ${get(`ax_${s}_taille`)} mm `;
+        if (has(`ax_${s}_hile`)) axText += `, hile ${get(`ax_${s}_hile`)} `;
+        if (has(`ax_${s}_cortex`)) axText += `, cortex ${get(`ax_${s}_cortex`)}`;
+        axText += '. ';
+      }
+    }
+  });
+  if (axText) sections.push({ title: 'CREUX AXILLAIRES', text: axText });
+
+  // BIRADS
+  let biradsText = '';
+  if (has('birads_d') || has('birads_g')) {
+    if (has('birads_d')) biradsText += `Sein droit : classification ACR-BIRADS ${get('birads_d')}`;
+    if (has('birads_d') && has('birads_g')) biradsText += ' ; ';
+    if (has('birads_g')) biradsText += `sein gauche : classification ACR-BIRADS ${get('birads_g')}`;
+    biradsText += '. ';
+    const maxBirads = Math.max(parseInt(get('birads_d')||0), parseInt(get('birads_g')||0));
+    biradsText += getBiradsInterpretation(maxBirads);
+  }
+  if (biradsText) sections.push({ title: 'CLASSIFICATION ACR-BIRADS', text: biradsText });
+
+  return sections;
+}
+
+}; // end NARRATIVE
+
+// ============================================================
+// HELPERS
+// ============================================================
+function probeNarrative(probe) {
+  return T('probeNarrativeMap')[probe] || probe;
+}
+
+function buildOvaryNarrative(f, pre, side, has, get, mm) {
+  let text = '';
+  if (has(`${pre}_vis`)) {
+    if (get(`${pre}_vis`) === 'non visualisé') {
+      return `L'ovaire ${side} n'est pas individualisé dans les conditions habituelles de l'examen. `;
+    }
+    text += `L'ovaire ${side} est visualisé`;
+    if (has(`${pre}_L`) || has(`${pre}_AP`) || has(`${pre}_T`)) {
+      text += `, mesurant ${mm(`${pre}_L`,`${pre}_AP`,`${pre}_T`)} mm`;
+    }
+    if (has(`${pre}_vol`)) text += ` (volume ${get(`${pre}_vol`)} cm³)`;
+    text += '. ';
+    if (has(`${pre}_echostructure`)) text += `Son échostructure est ${get(`${pre}_echostructure`)}. `;
+    if (has(`${pre}_fac`)) {
+      const fac = parseInt(get(`${pre}_fac`));
+      text += `Le compte folliculaire antral (CFA) est de ${fac} follicule(s)`;
+      if (fac >= 12) text += ` (aspect en faveur d'une réserve ovarienne correcte)`;
+      else if (fac <= 5) text += ` (CFA bas, à corréler avec les données hormonales)`;
+      text += '. ';
+    }
+    if (has(`${pre}_foll_dominant`)) text += `Follicule dominant : ${get(`${pre}_foll_dominant`)} mm. `;
+    if (has(`${pre}_corps_jaune`)) text += `Corps jaune ${get(`${pre}_corps_jaune`)} visualisé. `;
+    if (has(`${pre}_kyste_type`)) {
+      text += `On met en évidence une formation kystique de type ${get(`${pre}_kyste_type`)}`;
+      if (has(`${pre}_kyste_taille`)) text += ` mesurant ${get(`${pre}_kyste_taille`)} mm`;
+      if (has(`${pre}_kyste_paroi`)) text += `, à paroi ${get(`${pre}_kyste_paroi`)}`;
+      if (has(`${pre}_kyste_cloisons`)) text += `, ${get(`${pre}_kyste_cloisons`)}`;
+      if (has(`${pre}_kyste_contenu`)) text += `, contenu ${get(`${pre}_kyste_contenu`)}`;
+      if (has(`${pre}_kyste_vasc`)) text += `, vascularisation ${get(`${pre}_kyste_vasc`)} au Doppler couleur`;
+      text += '. ';
+    }
+    if (has(`${pre}_sopk`)) text += `L'aspect ovarien est ${get(`${pre}_sopk`)}. `;
+    if (has(`${pre}_comments`)) text += get(`${pre}_comments`) + ' ';
+  }
+  return text;
+}
+
+function buildAnatomySectionNarrative(f, has, get, fields) {
+  let text = '';
+  fields.forEach(([key, label]) => {
+    if (has(key)) text += `${label} : ${get(key)}. `;
+  });
+  return text;
+}
+
+function buildBreastNarrative(f, has, get, mm, side, sideLabel) {
+  const p = 'sein' + side;
+  let text = '';
+  if (has(`${p}_tissu`)) text += `Le sein ${sideLabel} présente un parenchyme de type ${get(`${p}_tissu`)} (densité ACR). `;
+  if (has(`${p}_aspect_global`)) text += `L'aspect global du tissu est ${get(`${p}_aspect_global`)}. `;
+  if (has(`${p}_lesion_presente`)) {
+    if (get(`${p}_lesion_presente`) === 'non') {
+      text += `Aucune lésion focale n'est individualisée au sein ${sideLabel}. `;
+    } else {
+      // Describe lesion
+      text += `On individualise au sein ${sideLabel} une lésion focale `;
+      if (has(`${p}_type_lesion`)) text += `de type ${get(`${p}_type_lesion`)} `;
+      if (has(`${p}_quad`)) text += `localisée au ${get(`${p}_quad`)} `;
+      if (has(`${p}_position_h`)) text += `à ${get(`${p}_position_h`)}h `;
+      if (has(`${p}_dist_mamelon`)) text += `à ${get(`${p}_dist_mamelon`)} mm du mamelon `;
+      text += '. ';
+      if (has(`${p}_taille_1`) || has(`${p}_taille_2`) || has(`${p}_taille_3`)) {
+        text += `Ses dimensions sont de ${mm(`${p}_taille_1`,`${p}_taille_2`,`${p}_taille_3`)} mm. `;
+      }
+      // Caractères ACR-BIRADS descriptor
+      if (has(`${p}_forme`)) text += `Forme : ${get(`${p}_forme`)}. `;
+      if (has(`${p}_orientation`)) text += `Orientation : ${get(`${p}_orientation`)}. `;
+      if (has(`${p}_margins`)) text += `Marges : ${get(`${p}_margins`)}. `;
+      if (has(`${p}_echo_pattern`)) text += `Échostructure : ${get(`${p}_echo_pattern`)}. `;
+      if (has(`${p}_posterior`)) text += `Modifications postérieures : ${get(`${p}_posterior`)}. `;
+      if (has(`${p}_calcifications`)) text += `Calcifications : ${get(`${p}_calcifications`)}. `;
+      if (has(`${p}_vascularite`)) text += `Vascularisation au Doppler couleur : ${get(`${p}_vascularite`)}. `;
+      if (has(`${p}_elastographie`)) text += `Élastographie : ${get(`${p}_elastographie`)}. `;
+      if (has(`${p}_peau`)) text += `Peau en regard : ${get(`${p}_peau`)}. `;
+      if (has(`${p}_coop_lig`)) text += `Ligaments de Cooper : ${get(`${p}_coop_lig`)}. `;
+      if (has(`${p}_implant`)) text += `Implant mammaire : ${get(`${p}_implant`)}. `;
+    }
+  }
+  if (has(`${p}_comments`)) text += get(`${p}_comments`) + ' ';
+  return text;
+}
+
+function getBiradsInterpretation(n) {
+  const map = {
+    0: 'Évaluation incomplète — Imagerie complémentaire nécessaire (mammographie, IRM mammaire).',
+    1: 'Examen négatif — Aucune anomalie. Surveillance habituelle.',
+    2: 'Constatation bénigne — Retour au dépistage habituel.',
+    3: 'Anomalie probablement bénigne — Risque de malignité < 2 %. Suivi échographique à 6 mois recommandé.',
+    4: 'Anomalie suspecte — Risque de malignité 2-95 %. Vérification histologique recommandée (biopsie).',
+    5: 'Anomalie hautement évocatrice de malignité — Risque > 95 %. Prise en charge chirurgicale recommandée après biopsie.',
+    6: 'Malignité prouvée (biopsie positive) — Prise en charge thérapeutique en cours.'
+  };
+  return map[n] || '';
+}
+
+</script>
+<script>
+// ============================================================
+// FINDINGS UI TEMPLATES – EchoReport Dr. Johnny Barakat
+// ============================================================
+
+window.TEMPLATES = {
+
+// ============================================================
+// GYN TEMPLATES
+// ============================================================
+gyn: {
+
+uterus: () => `
+<div class="fs-row">
+  <div class="fg"><label class="fl">Statut hormonal</label>
+    <div class="chips">
+      ${chips('statut_hormonal',['préménopausée','péri-ménopausée','ménopausée','sous contraception','sous THS','sous stimulation ovarienne','grossesse débutante'])}
+    </div>
+  </div>
+</div>
+<div class="fs-row">
+  <div class="fg"><label class="fl">Jour du cycle</label>
+    <input type="number" min="1" max="35" id="cycle_j" placeholder="ex: 8" oninput="SF('cycle_j',this.value)" class="fi">
+  </div>
+</div>
+<div class="divider"></div>
+<div class="fs-row">
+  <div class="fg"><label class="fl">Position utérine</label>
+    <div class="chips">
+      ${chips('uterus_position',['antéversé','rétroversé','médioversé','latéroversé droit','latéroversé gauche'],'single')}
+    </div>
+  </div>
+  <div class="fg"><label class="fl">Forme</label>
+    <div class="chips">
+      ${chips('uterus_forme',['normale','arciforme','bicorne','didelphe','hypoplasique'],'single')}
+    </div>
+  </div>
+</div>
+<div class="fs-row">
+  <div class="fg"><label class="fl">Contours</label>
+    <div class="chips">
+      ${chips('uterus_contours',['réguliers','irréguliers','lobulés'],'single')}
+    </div>
+  </div>
+</div>
+<div class="fs-row">
+  <div class="fg"><label class="fl">Dimensions utérines (mm)</label>
+  <table class="mt"><thead><tr><th>Longueur</th><th>Épaisseur AP</th><th>Largeur</th><th>Volume (cm³)</th></tr></thead>
+  <tbody><tr>
+    <td><input class="mi" type="number" id="uterus_L" placeholder="—" oninput="SF('uterus_L',this.value)"></td>
+    <td><input class="mi" type="number" id="uterus_AP" placeholder="—" oninput="SF('uterus_AP',this.value)"></td>
+    <td><input class="mi" type="number" id="uterus_T" placeholder="—" oninput="SF('uterus_T',this.value)"></td>
+    <td><input class="mi" type="number" step="0.1" id="uterus_vol" placeholder="—" oninput="SF('uterus_vol',this.value)"></td>
+  </tr></tbody></table>
+  <div class="hint">Volume = L × AP × T × 0.523</div>
+  </div>
+</div>
+<div class="divider"></div>
+<div class="fs-row">
+  <div class="fg"><label class="fl">Échostructure myomètre</label>
+    <div class="chips">
+      ${chips('myometre_aspect',['homogène','légèrement hétérogène','hétérogène','hyperéchogène','hypoéchogène'],'single')}
+    </div>
+  </div>
+</div>
+<div class="fs-row">
+  <div class="fg"><label class="fl">Pathologie myométriale</label>
+    <div class="chips">
+      ${chips('myometre_pathologie',['sans anomalie','fibrome(s)','adénomyose','fibrome + adénomyose','malformation utérine'],'single')}
+    </div>
+  </div>
+</div>
+<div id="fibrome-block" class="conditional-block" style="display:none">
+  <div class="conditional-title">📐 Fibromes – Détail</div>
+  <div class="fs-row">
+    <div class="fg"><label class="fl">Nombre de fibromes</label>
+      <div class="chips">${chips('fibrome_nb',['1','2','3','> 3 (utérus polymyomateux)'],'single')}</div>
+    </div>
+    <div class="fg"><label class="fl">Siège</label>
+      <div class="chips">${chips('fibrome_sieg',['sous-séreux','intramurale','sous-muqueux','pédiculé','cervical','isthmique','ligamentaire'],'single')}</div>
+    </div>
+  </div>
+  <div class="fs-row">
+    <div class="fg"><label class="fl">Dimensions fibrome principal (mm)</label>
+      <table class="mt"><thead><tr><th>Longueur</th><th>AP</th><th>Largeur</th></tr></thead>
+      <tbody><tr>
+        <td><input class="mi" type="number" id="fibrome_L" placeholder="—" oninput="SF('fibrome_L',this.value)"></td>
+        <td><input class="mi" type="number" id="fibrome_AP" placeholder="—" oninput="SF('fibrome_AP',this.value)"></td>
+        <td><input class="mi" type="number" id="fibrome_T" placeholder="—" oninput="SF('fibrome_T',this.value)"></td>
+      </tr></tbody></table>
+    </div>
+  </div>
+  <div class="fs-row">
+    <div class="fg"><label class="fl">Échostructure fibrome</label>
+      <div class="chips">${chips('fibrome_echo',['hypoéchogène','isoéchogène','hyperéchogène','hétérogène','calcifié'],'single')}</div>
+    </div>
+    <div class="fg"><label class="fl">Calcifications</label>
+      <div class="chips">${chips('fibrome_calc',['sans calcifications','calcifications périphériques','calcifications centrales'],'single')}</div>
+    </div>
+  </div>
+</div>
+<div id="adenomyose-block" class="conditional-block" style="display:none">
+  <div class="conditional-title">📐 Adénomyose – Détail</div>
+  <div class="fs-row">
+    <div class="fg"><label class="fl">Type d'adénomyose</label>
+      <div class="chips">${chips('adenomyose_type',['diffuse','focale','antérieure','postérieure','adénomyome'],'single')}</div>
+    </div>
+  </div>
+</div>
+<div class="fs-row">
+  <div class="fg"><label class="fl">Commentaires libres – Utérus</label>
+    <textarea id="uterus_comments" class="fta" placeholder="..." oninput="SF('uterus_comments',this.value)"></textarea>
+  </div>
+</div>`,
+
+endometrium: () => `
+<div class="fs-row">
+  <div class="fg"><label class="fl">Épaisseur endomètre (mm) <span class="req">*</span></label>
+    <input type="number" step="0.1" id="endo_ep" class="fi" placeholder="ex: 7.5" oninput="SF('endo_ep',this.value)">
+    <div class="hint">Post-ménopause : normal ≤ 4 mm · Phase proliférative : 4-8 mm · Phase sécrétoire : 8-14 mm</div>
+  </div>
+  <div class="fg"><label class="fl">Phase du cycle</label>
+    <div class="chips">${chips('endo_phase',['proliférative précoce','proliférative moyenne','proliférative tardive','péri-ovulatoire','sécrétoire précoce','sécrétoire moyenne','sécrétoire tardive','atrophique (post-ménopause)'],'single')}</div>
+  </div>
+</div>
+<div class="fs-row">
+  <div class="fg"><label class="fl">Aspect de l'endomètre</label>
+    <div class="chips">
+      ${chips('endo_aspect',['homogène','hyperéchogène homogène','trilamellaire (péri-ovulatoire)','hétérogène','hyperéchogène focale','polypoïde','liquidien intracavitaire','écho de grossesse débutante','atrophique'],'single')}
+    </div>
+  </div>
+</div>
+<div class="fs-row">
+  <div class="fg"><label class="fl">Zone jonctionnelle (myomètre interne)</label>
+    <div class="chips">${chips('endo_zone_jonct',['bien définie','irrégulière','effacée (adénomyose)','épaissie'],'single')}</div>
+  </div>
+</div>
+<div class="fs-row">
+  <div class="fg"><label class="fl">Cavité utérine</label>
+    <div class="chips">${chips('cavite_etat',['libre','épanchement minime liquidien','polype endométrial suspect','écho de grossesse débutante','image de rétention'],'single')}</div>
+  </div>
+</div>
+<div class="fs-row">
+  <div class="fg"><label class="fl">DIU</label>
+    <div class="chips">${chips('diu_position',['DIU en bonne position intracavitaire','DIU en position basse','DIU partiellement expulsé','DIU non visualisé','pas de DIU'],'single')}</div>
+  </div>
+</div>
+<div class="fs-row">
+  <div class="fg"><label class="fl">Commentaires – Endomètre</label>
+    <textarea id="endo_comments" class="fta" placeholder="..." oninput="SF('endo_comments',this.value)"></textarea>
+  </div>
+</div>`,
+
+ovaire_d: () => ovaireTemplate('od','droit'),
+ovaire_g: () => ovaireTemplate('og','gauche'),
+
+douglas: () => `
+<div class="fs-row">
+  <div class="fg"><label class="fl">Cul-de-sac de Douglas</label>
+    <div class="chips">${chips('douglas_etat',['libre','épanchement minime','épanchement modéré','épanchement abondant','masse complexe au Douglas','adhérences suspectées'],'single')}</div>
+  </div>
+</div>
+<div id="douglas-ep-block" class="conditional-block" style="display:none">
+  <div class="fs-row">
+    <div class="fg"><label class="fl">Hauteur de l'épanchement (mm)</label>
+      <input type="number" id="douglas_ep_liquide" class="fi" placeholder="mm" oninput="SF('douglas_ep_liquide',this.value)">
+    </div>
+  </div>
+</div>
+<div class="divider"></div>
+<div class="fs-row">
+  <div class="fg"><label class="fl">Trompes</label>
+    <div class="chips">${chips('trompes_aspect',['non visualisées (normal)','visualisées non dilatées','hydrosalpinx','pyosalpinx','masse tubo-ovarienne'],'single')}</div>
+  </div>
+</div>
+<div id="hydrosalpinx-block" class="conditional-block" style="display:none">
+  <div class="conditional-title">📐 Hydrosalpinx / Pyosalpinx</div>
+  <div class="fs-row">
+    <div class="fg"><label class="fl">Côté</label>
+      <div class="chips">${chips('hydrosalpinx_cote',['droit','gauche','bilatéral'],'single')}</div>
+    </div>
+    <div class="fg"><label class="fl">Taille (mm)</label>
+      <input type="number" id="hydrosalpinx_taille" class="fi" placeholder="mm" oninput="SF('hydrosalpinx_taille',this.value)">
+    </div>
+  </div>
+</div>
+<div class="fs-row">
+  <div class="fg"><label class="fl">Commentaires – Douglas / Trompes</label>
+    <textarea id="douglas_comments" class="fta" placeholder="..." oninput="SF('douglas_comments',this.value)"></textarea>
+  </div>
+</div>`,
+
+col: () => `
+<div class="fs-row">
+  <div class="fg"><label class="fl">Longueur cervicale (mm)</label>
+    <input type="number" step="0.1" id="col_long" class="fi" placeholder="ex: 35" oninput="SF('col_long',this.value)">
+  </div>
+</div>
+<div class="fs-row">
+  <div class="fg"><label class="fl">Aspect du col</label>
+    <div class="chips">${chips('col_aspect',['normal','hypertrophique','hétérogène','fibrome sous-cervical','sténose cervicale'],'single')}</div>
+  </div>
+</div>
+<div class="fs-row">
+  <div class="fg"><label class="fl">Kystes de Naboth</label>
+    <div class="chips">${chips('col_kyste_naboth',['absents','kyste(s) de Naboth unique(s)','kystes de Naboth multiples'],'single')}</div>
+  </div>
+</div>
+<div class="fs-row">
+  <div class="fg"><label class="fl">Commentaires – Col utérin</label>
+    <textarea id="col_comments" class="fta" placeholder="..." oninput="SF('col_comments',this.value)"></textarea>
+  </div>
+</div>`
+
+}, // end gyn
+
+// ============================================================
+// OBS TEMPLATES
+// ============================================================
+obs: {
+
+grossesse: () => `
+<div class="fs-row">
+  <div class="fg"><label class="fl">Type de grossesse</label>
+    <div class="chips">${chips('grossesse_type',['unique','gémellaire bichoriale biamniotique','gémellaire monochoriale biamniotique','gémellaire monochoriale monoamniotique','triple ou plus'],'single')}</div>
+  </div>
+</div>
+<div class="divider"></div>
+<div class="fs-row">
+  <div class="fg"><label class="fl">Terme clinique</label>
+    <div class="grid2">
+      <div>
+        <label class="fl-sm">Semaines (SA)</label>
+        <input type="number" id="terme_clinique_sa" class="fi" placeholder="SA" oninput="SF('terme_clinique_sa',this.value); calcPFE()">
+      </div>
+      <div>
+        <label class="fl-sm">Jours</label>
+        <input type="number" min="0" max="6" id="terme_clinique_j" class="fi" placeholder="j" oninput="SF('terme_clinique_j',this.value)">
+      </div>
+    </div>
+  </div>
+  <div class="fg"><label class="fl">Date des dernières règles</label>
+    <input type="date" id="ddr" class="fi" oninput="SF('ddr',this.value)">
+  </div>
+</div>
+<div class="divider"></div>
+<div class="fs-row">
+  <div class="fg"><label class="fl">Vitalité – BCF</label>
+    <div class="chips">${chips('vitalite_bcf',['présents','absents'],'single')}</div>
+  </div>
+  <div class="fg"><label class="fl">Fréquence cardiaque fœtale (bpm)</label>
+    <input type="number" id="fc_foetale" class="fi" placeholder="ex: 148" oninput="SF('fc_foetale',this.value)">
+    <div class="hint">Normale : 120-160 bpm</div>
+  </div>
+</div>
+<div class="fs-row">
+  <div class="fg"><label class="fl">Mouvements actifs fœtaux</label>
+    <div class="chips">${chips('mvts_actifs',['présents et normaux','diminués','absents'],'single')}</div>
+  </div>
+  <div class="fg"><label class="fl">Tonus fœtal</label>
+    <div class="chips">${chips('tonus_foetal',['normal','diminué','absent'],'single')}</div>
+  </div>
+</div>`,
+
+biometrie: () => `
+<div class="hint-block">📏 Biométrie selon courbes CFEF / Hadlock – Renseigner mesures et percentiles correspondants</div>
+<div class="fs-row">
+  <div class="fg"><label class="fl">Terme échographique moyen</label>
+    <div class="grid2">
+      <div><label class="fl-sm">SA</label><input type="number" id="terme_echo_sa" class="fi" placeholder="SA" oninput="SF('terme_echo_sa',this.value)"></div>
+      <div><label class="fl-sm">Jours</label><input type="number" min="0" max="6" id="terme_echo_j" class="fi" placeholder="j" oninput="SF('terme_echo_j',this.value)"></div>
+    </div>
+  </div>
+  <div class="fg"><label class="fl">Concordance biométrique</label>
+    <div class="chips">${chips('concordance_biometrie',['harmonieuse','dysharmonieuse (CC/CA discordants)','biométrie en avance','biométrie en retard'],'single')}</div>
+  </div>
+</div>
+<div class="divider"></div>
+<table class="mt-bio">
+  <thead><tr><th>Paramètre</th><th>Mesure (mm)</th><th>Terme écho (SA)</th><th>Percentile</th></tr></thead>
+  <tbody>
+    ${bioRow('LCC','LCC – Longueur crânio-caudale','T1 · 6-13 SA')}
+    ${bioRow('CN','CN – Clarté nucale','T1 · 11-13+6 SA')}
+    ${bioRow('CN_TN','TN – Translucence nucale','T1')}
+    ${bioRow('BIP','BIP – Diamètre bipariétal','T2-T3')}
+    ${bioRow('DOF','DOF – Diamètre occipito-frontal','T2-T3')}
+    ${bioRow('CC','CC – Périmètre crânien','T2-T3')}
+    ${bioRow('CA','CA – Périmètre abdominal','T2-T3')}
+    ${bioRow('DAT','DAT – Diam. abdominal transverse','T2-T3')}
+    ${bioRow('DAP','DAP – Diam. abdominal AP','T2-T3')}
+    ${bioRow('LF','LF – Longueur fémorale','T2-T3')}
+    ${bioRow('LH','LH – Longueur humérale','T2-T3')}
+  </tbody>
+</table>
+<div class="divider"></div>
+<div class="fs-row">
+  <div class="fg"><label class="fl">Poids fœtal estimé – PFE (g) <span class="hint-inline">(Hadlock)</span></label>
+    <input type="number" id="pfe" class="fi" placeholder="grammes" oninput="SF('pfe',this.value)">
+  </div>
+  <div class="fg"><label class="fl">Percentile PFE</label>
+    <input type="text" id="pfe_pc" class="fi" placeholder="ex: 45e" oninput="SF('pfe_pc',this.value)">
+  </div>
+</div>
+<div class="fs-row">
+  <div class="fg"><label class="fl">Profil de croissance</label>
+    <div class="chips">${chips('croissance_profil',['eutrophe (10e-90e pc)','macrosome (> 90e pc)','retard de croissance intra-utérin (< 10e pc)','RCIU sévère (< 3e pc)','biométrie discordante'],'single')}</div>
+  </div>
+</div>`,
+
+anatomie_crane: () => `
+<div class="hint-block">🧠 Examen SNC – Selon recommandations SFEF / ISUOG</div>
+<div class="fs-row">
+  <div class="fg"><label class="fl">Revêtement cutané crânien</label>
+    <div class="chips">${chips('crane_peau',['intact','anomalie (hydrops)'],'single')}</div>
+  </div>
+  <div class="fg"><label class="fl">Voûte crânienne</label>
+    <div class="chips">${chips('crane_os',['ossifiée et régulière','signe du citron','crâne mou (non ossifié)','déformation'],'single')}</div>
+  </div>
+</div>
+<div class="fs-row">
+  <div class="fg"><label class="fl">Forme du crâne (coupe axiale)</label>
+    <div class="chips">${chips('crane_forme',['ovalaire normale','signe du citron','brachycéphalie','dolichocéphalie','en trèfle'],'single')}</div>
+  </div>
+  <div class="fg"><label class="fl">Faux du cerveau</label>
+    <div class="chips">${chips('faux_cerveau',['visible, médiane','absente (holoprosencéphalie?)','déviée'],'single')}</div>
+  </div>
+</div>
+<div class="divider"></div>
+<div class="fs-row">
+  <div class="fg"><label class="fl">Ventricules latéraux</label>
+    <div class="chips">${chips('ventricules_lat',['de taille normale','dilatés (ventriculomégalie)','asymétriques'],'single')}</div>
+  </div>
+  <div class="fg"><label class="fl">Mesure ventricule latéral (mm)</label>
+    <input type="number" step="0.1" id="vent_lat_mes" class="fi" placeholder="ex: 7.5" oninput="SF('vent_lat_mes',this.value)">
+    <div class="hint">Normal ≤ 10 mm · Ventriculomégalie légère 10-15 mm · Sévère > 15 mm</div>
+  </div>
+</div>
+<div class="fs-row">
+  <div class="fg"><label class="fl">Cavum du septum pellucidum (CSP)</label>
+    <div class="chips">${chips('cavum_septum',['visible (normal > 18 SA)','absent','non recherché (< 18 SA)'],'single')}</div>
+  </div>
+  <div class="fg"><label class="fl">Plexus choroïdes</label>
+    <div class="chips">${chips('plexus_choroides',['symétriques, normaux','kyste(s) des plexus choroïdes','asymétriques'],'single')}</div>
+  </div>
+</div>
+<div class="divider"></div>
+<div class="fs-row">
+  <div class="fg"><label class="fl">Cervelet (coupe axiale)</label>
+    <div class="chips">${chips('cerebellum',['normal, bilobé','signe de la banane','hypoplasie cérébelleuse','mégalencéphalie','Dandy-Walker suspect'],'single')}</div>
+  </div>
+  <div class="fg"><label class="fl">Diamètre cérébelleux transverse (mm)</label>
+    <input type="number" step="0.1" id="diam_cerebellum" class="fi" placeholder="mm" oninput="SF('diam_cerebellum',this.value)">
+    <div class="hint">Correspond approximativement au terme en SA (ex: 22 SA → ~22 mm)</div>
+  </div>
+</div>
+<div class="fs-row">
+  <div class="fg"><label class="fl">Citerne magna (CM)</label>
+    <div class="chips">${chips('citerne_magna',['normale','élargie (> 10 mm)','absente (Chiari II)','kyste de la fosse postérieure'],'single')}</div>
+  </div>
+  <div class="fg"><label class="fl">Mesure citerne magna (mm)</label>
+    <input type="number" step="0.1" id="diam_cm" class="fi" placeholder="mm" oninput="SF('diam_cm',this.value)">
+    <div class="hint">Normale : 2-10 mm</div>
+  </div>
+</div>
+<div class="fs-row">
+  <div class="fg"><label class="fl">Corps calleux</label>
+    <div class="chips">${chips('corps_calleux',['visible et normal','non visualisé (agénésie ?)','hypoplasique','non explorable à ce terme'],'single')}</div>
+  </div>
+  <div class="fg"><label class="fl">3e et 4e ventricule</label>
+    <div class="chips">${chips('3e_ventricule',['non dilatés','dilatés'],'single')}</div>
+  </div>
+</div>`,
+
+anatomie_face: () => `
+<div class="hint-block">👁 Examen de la face – Coupe frontale + profil + coronale</div>
+<div class="fs-row">
+  <div class="fg"><label class="fl">Orbites</label>
+    <div class="chips">${chips('orbites',['symétriques, bien formées','hypotélorisme','hypertélorisme','microphtalmie','anophtalmie'],'single')}</div>
+  </div>
+  <div class="fg"><label class="fl">Distance inter-orbitaire</label>
+    <input type="number" step="0.1" id="dist_interorb" class="fi" placeholder="mm" oninput="SF('dist_interorb',this.value)">
+  </div>
+</div>
+<div class="fs-row">
+  <div class="fg"><label class="fl">Os nasal</label>
+    <div class="chips">${chips('os_nasal',['présent et normal','absent','hypoplasique (< 2.5 mm)','non visualisé'],'single')}</div>
+  </div>
+  <div class="fg"><label class="fl">Mesure os nasal (mm)</label>
+    <input type="number" step="0.1" id="os_nasal_mes" class="fi" placeholder="mm" oninput="SF('os_nasal_mes',this.value)">
+    <div class="hint">T1 : > 2.5 mm attendu selon terme</div>
+  </div>
+</div>
+<div class="fs-row">
+  <div class="fg"><label class="fl">Lèvres</label>
+    <div class="chips">${chips('levres',['continues, normales','fente labiale droite','fente labiale gauche','fente bilatérale','fente labio-palatine'],'single')}</div>
+  </div>
+  <div class="fg"><label class="fl">Palais</label>
+    <div class="chips">${chips('palais',['non étudié (T1)','continu (coupe coronale)','fente palatine suspectée'],'single')}</div>
+  </div>
+</div>
+<div class="fs-row">
+  <div class="fg"><label class="fl">Profil facial</label>
+    <div class="chips">${chips('profil_face',['normal','micrognathie','profil plat','macroglossie'],'single')}</div>
+  </div>
+  <div class="fg"><label class="fl">Oreilles</label>
+    <div class="chips">${chips('oreilles',['non étudiées','visualisées normales','bas implantées'],'single')}</div>
+  </div>
+</div>`,
+
+anatomie_thorax: () => `
+<div class="hint-block">🫁 Thorax – Coupes axiales + 4 cavités + voies efférentes</div>
+<div class="fs-row">
+  <div class="fg"><label class="fl">Forme du thorax</label>
+    <div class="chips">${chips('thorax_forme',['normal, cylindrique','étroit (dysplasie osseuse?)','déformé'],'single')}</div>
+  </div>
+  <div class="fg"><label class="fl">Côtes</label>
+    <div class="chips">${chips('cotes',['normales','courtes (dysplasie)','fractures'],'single')}</div>
+  </div>
+</div>
+<div class="fs-row">
+  <div class="fg"><label class="fl">Poumons</label>
+    <div class="chips">${chips('poumons',['d\'échogénicité normale','hyperéchogènes','hypoéchogènes','séquestration broncho-pulmonaire','MAKP suspect','épanchement pleural'],'single')}</div>
+  </div>
+</div>
+<div class="divider"></div>
+<div class="fs-row">
+  <div class="fg"><label class="fl">Position du cœur</label>
+    <div class="chips">${chips('coeur_position',['gauche normale (lévocardie)','droite (dextrocardie)','médiane (mésocardie)'],'single')}</div>
+  </div>
+  <div class="fg"><label class="fl">Situs</label>
+    <div class="chips">${chips('situs',['solitus (normal)','inversus','ambiguus'],'single')}</div>
+  </div>
+</div>
+<div class="fs-row">
+  <div class="fg"><label class="fl">Axe cardiaque (degrés)</label>
+    <input type="number" id="axe_coeur" class="fi" placeholder="ex: 45" oninput="SF('axe_coeur',this.value)">
+    <div class="hint">Normal : 45° ± 20°</div>
+  </div>
+  <div class="fg"><label class="fl">Taille cardiaque (RCT)</label>
+    <div class="chips">${chips('coeur_taille',['normale (1/3 du thorax)','augmentée (cardiomégalie)','réduite'],'single')}</div>
+  </div>
+</div>
+<div class="fs-row">
+  <div class="fg"><label class="fl">Coupe 4 cavités</label>
+    <div class="chips">${chips('4_cavites',['normale','asymétrie des cavités droites','asymétrie des cavités gauches','CIV suspectée','CIA suspectée','ventricule unique','anomalie complexe'],'single')}</div>
+  </div>
+</div>
+<div class="fs-row">
+  <div class="fg"><label class="fl">Septum interventriculaire</label>
+    <div class="chips">${chips('septum_IV',['intact','CIV périmembraneuse','CIV musculaire','CIV large'],'single')}</div>
+  </div>
+  <div class="fg"><label class="fl">Septum interauriculaire</label>
+    <div class="chips">${chips('septum_IA',['foramen ovale normal','CIA ostium secundum','CIA large'],'single')}</div>
+  </div>
+</div>
+<div class="fs-row">
+  <div class="fg"><label class="fl">Voies efférentes (aorte + AP)</label>
+    <div class="chips">${chips('voies_efferentes',['normales, croisées','non croisées (transposition?)','sténose aortique','sténose pulmonaire','coarctation suspectée'],'single')}</div>
+  </div>
+  <div class="fg"><label class="fl">Arc aortique</label>
+    <div class="chips">${chips('arche_aortique',['gauche, normal','droit','double arc'],'single')}</div>
+  </div>
+</div>
+<div class="fs-row">
+  <div class="fg"><label class="fl">Commentaires cœur / thorax</label>
+    <textarea id="coeur_comments" class="fta" placeholder="..." oninput="SF('coeur_comments',this.value)"></textarea>
+  </div>
+</div>`,
+
+anatomie_abdomen: () => `
+<div class="hint-block">🫄 Abdomen fœtal – Organes, cordon, voies urinaires</div>
+<div class="fs-row">
+  <div class="fg"><label class="fl">Paroi abdominale / cordon</label>
+    <div class="chips">${chips('paroi_abdominale',['intacte, insertion normale','omphalocèle','laparoschisis','hernie ombilicale physiologique (< 12 SA)'],'single')}</div>
+  </div>
+  <div class="fg"><label class="fl">Estomac</label>
+    <div class="chips">${chips('estomac',['visible en position normale (gauche)','non visible','ectopique','dilaté (atrésie duodénale ?)'],'single')}</div>
+  </div>
+</div>
+<div class="fs-row">
+  <div class="fg"><label class="fl">Foie</label>
+    <div class="chips">${chips('foie',['normal','hépatomégalie','hétérogène','calcification hépatique'],'single')}</div>
+  </div>
+  <div class="fg"><label class="fl">Vésicule biliaire</label>
+    <div class="chips">${chips('vesicule_biliaire',['visible normale','non visualisée','dilatée (cholestase?)'],'single')}</div>
+  </div>
+</div>
+<div class="fs-row">
+  <div class="fg"><label class="fl">Intestin</label>
+    <div class="chips">${chips('intestin',['normal','hyperéchogène (grade 1)','hyperéchogène (grade 2)','hyperéchogène (grade 3 – pathologique)','dilaté (obstruction?)'],'single')}</div>
+  </div>
+</div>
+<div class="divider"></div>
+<div class="fs-row">
+  <div class="fg"><label class="fl">Reins – droit</label>
+    <div class="chips">${chips('reins_d',['normal','agénésie rénale','rein polykystique','rein multicystique','hydronéphrose'],'single')}</div>
+  </div>
+  <div class="fg"><label class="fl">Reins – gauche</label>
+    <div class="chips">${chips('reins_g',['normal','agénésie rénale','rein polykystique','rein multicystique','hydronéphrose'],'single')}</div>
+  </div>
+</div>
+<div class="fs-row">
+  <div class="fg"><label class="fl">Bassinet droit (mm)</label>
+    <input type="number" step="0.1" id="bassinet_d" class="fi" placeholder="mm" oninput="SF('bassinet_d',this.value)">
+    <div class="hint">Pathologique si > 7 mm T2, > 10 mm T3</div>
+  </div>
+  <div class="fg"><label class="fl">Bassinet gauche (mm)</label>
+    <input type="number" step="0.1" id="bassinet_g" class="fi" placeholder="mm" oninput="SF('bassinet_g',this.value)">
+  </div>
+</div>
+<div class="fs-row">
+  <div class="fg"><label class="fl">Vessie</label>
+    <div class="chips">${chips('vessie',['visible et normale','non visualisée','mégavessie','dilatée (obstacle sous-vésical)'],'single')}</div>
+  </div>
+  <div class="fg"><label class="fl">Glandes surrénales</label>
+    <div class="chips">${chips('glandes_surrenales',['non étudiées','normales','hyperéchogènes'],'single')}</div>
+  </div>
+</div>
+<div class="fs-row">
+  <div class="fg"><label class="fl">Cordon ombilical</label>
+    <div class="chips">${chips('cordon_ombilical',['3 vaisseaux (2 artères + 1 veine)','2 vaisseaux (artère ombilicale unique)','insertion normale','kyste du cordon','nœud suspect'],'single')}</div>
+  </div>
+  <div class="fg"><label class="fl">Sexe fœtal apparent</label>
+    <div class="chips">${chips('sexe_foetal',['masculin','féminin','indéterminé','non recherché'],'single')}</div>
+  </div>
+</div>
+<div class="fs-row">
+  <div class="fg"><label class="fl">Commentaires – Abdomen</label>
+    <textarea id="abdomen_comments" class="fta" placeholder="..." oninput="SF('abdomen_comments',this.value)"></textarea>
+  </div>
+</div>`,
+
+anatomie_squelette: () => `
+<div class="hint-block">🦴 Squelette fœtal – Membres, rachis, minéralisation</div>
+<div class="fs-row">
+  <div class="fg"><label class="fl">Membres supérieurs</label>
+    <div class="chips">${chips('membres_sup',['présents et normaux (bras + avant-bras + mains)','brachymèlie','rhizomèlie','main en trident','doigts surnuméraires','sydactylie'],'single')}</div>
+  </div>
+  <div class="fg"><label class="fl">Membres inférieurs</label>
+    <div class="chips">${chips('membres_inf',['présents et normaux (cuisses + jambes + pieds)','brachymèlie','rhizomèlie','pied bot','pied en varus équin'],'single')}</div>
+  </div>
+</div>
+<div class="fs-row">
+  <div class="fg"><label class="fl">Colonne vertébrale</label>
+    <div class="chips">${chips('colonne_vert',['normale sur 3 plans','spina bifida suspect','scoliose','hémi-vertèbre','coccyx visible'],'single')}</div>
+  </div>
+</div>
+<div class="fs-row">
+  <div class="fg"><label class="fl">Minéralisation osseuse</label>
+    <div class="chips">${chips('mineralisation',['normale','diminuée (ostéogenèse imparfaite?)','os fracturés'],'single')}</div>
+  </div>
+</div>
+<div class="fs-row">
+  <div class="fg"><label class="fl">Commentaires – Squelette</label>
+    <textarea id="rachis_comments" class="fta" placeholder="..." oninput="SF('rachis_comments',this.value)"></textarea>
+  </div>
+</div>`,
+
+placenta_la: () => `
+<div class="fs-row">
+  <div class="fg"><label class="fl">Localisation placentaire</label>
+    <div class="chips">${chips('placenta_loc',['fundique antérieur','fundique postérieur','latéral droit antérieur','latéral droit postérieur','latéral gauche antérieur','latéral gauche postérieur','bas inséré antérieur','bas inséré postérieur','placenta praevia recouvrant','placenta praevia marginal'],'single')}</div>
+  </div>
+</div>
+<div class="fs-row">
+  <div class="fg"><label class="fl">Maturation – Grade Grannum</label>
+    <div class="chips">${chips('placenta_grade',['0','I','II','III'],'single')}</div>
+  </div>
+  <div class="fg"><label class="fl">Épaisseur placentaire (mm)</label>
+    <input type="number" id="placenta_ep" class="fi" placeholder="mm" oninput="SF('placenta_ep',this.value)">
+    <div class="hint">Normale : 15-40 mm selon terme</div>
+  </div>
+</div>
+<div class="fs-row">
+  <div class="fg"><label class="fl">Distance orifice cervical interne (mm)</label>
+    <input type="number" id="placenta_dist_orifice" class="fi" placeholder="mm" oninput="SF('placenta_dist_orifice',this.value)">
+    <div class="hint">Bas inséré si < 20 mm · Praevia si recouvre l'OCI</div>
+  </div>
+  <div class="fg"><label class="fl">Aspect placentaire</label>
+    <div class="chips">${chips('placenta_aspect',['normal','hématome marginal','hématome décidual','lacunes placentaires','insertion vélamenteuse du cordon','placenta accreta suspect'],'single')}</div>
+  </div>
+</div>
+<div class="fs-row">
+  <div class="fg"><label class="fl">Insertion du cordon</label>
+    <div class="chips">${chips('placenta_insert_cordon',['centrale','excentrée','marginale (battledore)','vélamenteuse'],'single')}</div>
+  </div>
+</div>
+<div class="divider"></div>
+<div class="fs-row">
+  <div class="fg"><label class="fl">Liquide amniotique</label>
+    <div class="chips">${chips('LA_aspect',['normal','oligoamnios modéré','oligoamnios sévère (anamnios)','hydramnios modéré','hydramnios abondant'],'single')}</div>
+  </div>
+</div>
+<div class="fs-row">
+  <div class="fg"><label class="fl">Index de liquide amniotique – ILA (mm)</label>
+    <input type="number" id="ILA" class="fi" placeholder="mm" oninput="SF('ILA',this.value)">
+    <div class="hint">Normal : 50-200 mm · Oligo : < 50 mm · Hydram : > 200 mm</div>
+  </div>
+  <div class="fg"><label class="fl">Grande citerne (mm)</label>
+    <input type="number" id="grande_citerne" class="fi" placeholder="mm" oninput="SF('grande_citerne',this.value)">
+    <div class="hint">Oligo si < 20 mm · Hydram si > 80 mm</div>
+  </div>
+</div>`,
+
+doppler: () => `
+<div class="hint-block">🔴 Doppler fœtomaternelle – Artère ombilicale, ACM, artères utérines, ductus venosus</div>
+<div class="fs-row">
+  <div class="fg"><label class="fl">Doppler(s) réalisé(s)</label>
+    <div class="chips">${chips('doppler_realise',['artère ombilicale','artère cérébrale moyenne (ACM)','artères utérines droite et gauche','ductus venosus','veine ombilicale','aorte fœtale','artère rénale fœtale'],'multi')}</div>
+  </div>
+</div>
+<div class="divider"></div>
+<div class="fs-row">
+  <div class="fg"><label class="fl">Artère ombilicale – IP</label>
+    <input type="number" step="0.01" id="ip_omb" class="fi" placeholder="ex: 0.85" oninput="SF('ip_omb',this.value)">
+  </div>
+  <div class="fg"><label class="fl">Percentile IP ombilicale</label>
+    <input type="text" id="ip_omb_pc" class="fi" placeholder="ex: 50e" oninput="SF('ip_omb_pc',this.value)">
+  </div>
+</div>
+<div class="fs-row">
+  <div class="fg"><label class="fl">Diastole ombilicale</label>
+    <div class="chips">${chips('diastole_omb',['présente et normale','augmentée','absente (end diastolic flow absent)','reverse flow (diastole reverse)'],'single')}</div>
+  </div>
+</div>
+<div class="divider"></div>
+<div class="fs-row">
+  <div class="fg"><label class="fl">ACM – IP</label>
+    <input type="number" step="0.01" id="ip_acm" class="fi" placeholder="ex: 1.8" oninput="SF('ip_acm',this.value)">
+  </div>
+  <div class="fg"><label class="fl">ACM – VPS (cm/s)</label>
+    <input type="number" step="0.1" id="vpic_acm" class="fi" placeholder="cm/s" oninput="SF('vpic_acm',this.value)">
+    <div class="hint">VPS-ACM > 1.5 MoM → anémie fœtale</div>
+  </div>
+</div>
+<div class="fs-row">
+  <div class="fg"><label class="fl">Artère utérine droite – IP</label>
+    <input type="number" step="0.01" id="ip_ut_d" class="fi" placeholder="ex: 0.9" oninput="SF('ip_ut_d',this.value)">
+  </div>
+  <div class="fg"><label class="fl">Artère utérine gauche – IP</label>
+    <input type="number" step="0.01" id="ip_ut_g" class="fi" placeholder="ex: 0.9" oninput="SF('ip_ut_g',this.value)">
+  </div>
+</div>
+<div class="fs-row">
+  <div class="fg"><label class="fl">Notch protodiastolique utérin</label>
+    <div class="chips">${chips('notch_ut',['absent (normal)','notch bilatéral (anormal)','notch unilatéral droit','notch unilatéral gauche'],'single')}</div>
+  </div>
+</div>
+<div class="fs-row">
+  <div class="fg"><label class="fl">Ratio Cérébro-Placentaire (RCP = IP-ACM / IP-Ombilic)</label>
+    <input type="number" step="0.01" id="ratio_cpc" class="fi" placeholder="ex: 1.12" oninput="SF('ratio_cpc',this.value)">
+    <div class="hint">Pathologique si RCP < 1.0 (redistribution cérébrale)</div>
+  </div>
+</div>
+<div class="fs-row">
+  <div class="fg"><label class="fl">Ductus venosus</label>
+    <div class="chips">${chips('ductus_venosus',['non étudié','onde a positive (normal)','onde a nulle','onde a reverse (pathologique)'],'single')}</div>
+  </div>
+</div>
+<div class="fs-row">
+  <div class="fg"><label class="fl">Interprétation globale Doppler</label>
+    <div class="chips">${chips('doppler_interp',['normal','centralisation cérébrale débutante (stade I)','centralisation cérébrale modérée (stade II)','centralisation avancée – diastole nulle (stade III)','centralisation critique – reverse flow (stade IV)','prééclampsie – résistances utérines élevées'],'single')}</div>
+  </div>
+</div>`,
+
+col_obs: () => `
+<div class="fs-row">
+  <div class="fg"><label class="fl">Longueur cervicale (voie endovaginale) (mm)</label>
+    <input type="number" step="0.1" id="col_obs_long" class="fi" placeholder="ex: 35" oninput="SF('col_obs_long',this.value)">
+    <div class="hint">Normal ≥ 25 mm · Col court si < 25 mm · Très court si < 15 mm</div>
+  </div>
+</div>
+<div class="fs-row">
+  <div class="fg"><label class="fl">Aspect du col</label>
+    <div class="chips">${chips('col_obs_aspect',['fermé et long (normal)','effacé','ouvert à l\'OCI','ouvert à l\'OCE','béant'],'single')}</div>
+  </div>
+  <div class="fg"><label class="fl">Funneling (entonnoir)</label>
+    <div class="chips">${chips('col_obs_funnel',['absent','funnel en V','funnel en U','prolapsus des membranes'],'single')}</div>
+  </div>
+</div>
+<div class="fs-row">
+  <div class="fg"><label class="fl">Cerclage</label>
+    <div class="chips">${chips('cerclage',['pas de cerclage','cerclage en place et fonctionnel','cerclage en place non fonctionnel'],'single')}</div>
+  </div>
+  <div class="fg"><label class="fl">Pessaire</label>
+    <div class="chips">${chips('pessaire',['absent','en place'],'single')}</div>
+  </div>
+</div>`
+
+}, // end obs
+
+// ============================================================
+// SEIN TEMPLATES
+// ============================================================
+sein: {
+
+sein_d: () => seinTemplate('D','droit'),
+sein_g: () => seinTemplate('G','gauche'),
+
+mamelon: () => `
+<div class="hint-block">🔍 Région mamelonnaire et rétroaréolaire</div>
+<div class="fs-row">
+  <div class="fg"><label class="fl">Mamelon droit</label>
+    <div class="chips">${chips('mamelon_d_aspect',['normal','ombiliqué','rétracté','hypertrophique','écoulement séreuse','écoulement sanglant','supra-mamelonnaire'],'single')}</div>
+  </div>
+  <div class="fg"><label class="fl">Mamelon gauche</label>
+    <div class="chips">${chips('mamelon_g_aspect',['normal','ombiliqué','rétracté','hypertrophique','écoulement séreuse','écoulement sanglant','supra-mamelonnaire'],'single')}</div>
+  </div>
+</div>
+<div class="fs-row">
+  <div class="fg"><label class="fl">Région rétroaréolaire droite</label>
+    <div class="chips">${chips('retroareolaire_d',['libre','kyste rétroaréolaire','lésion solide rétroaréolaire','dilatation canalaire'],'single')}</div>
+  </div>
+  <div class="fg"><label class="fl">Région rétroaréolaire gauche</label>
+    <div class="chips">${chips('retroareolaire_g',['libre','kyste rétroaréolaire','lésion solide rétroaréolaire','dilatation canalaire'],'single')}</div>
+  </div>
+</div>
+<div class="fs-row">
+  <div class="fg"><label class="fl">Canaux galactophores</label>
+    <div class="chips">${chips('canaux_galactophores',['non dilatés','dilatés droits','dilatés gauches','dilatés bilatéraux'],'single')}</div>
+  </div>
+</div>
+<div class="fs-row">
+  <div class="fg"><label class="fl">Description écoulement</label>
+    <textarea id="ecoulement_desc" class="fta" rows="2" placeholder="Aspect, couleur, spontané/provoqué..." oninput="SF('ecoulement_desc',this.value)"></textarea>
+  </div>
+</div>`,
+
+axillaire: () => `
+<div class="hint-block">🔍 Creux axillaires droit et gauche</div>
+${['D','G'].map(s => {
+  const S = s === 'D' ? 'droit' : 'gauche';
+  return `
+<div class="fs-row">
+  <div class="fg"><label class="fl">Creux axillaire ${S}</label>
+    <div class="chips">${chips(`ax_${s}_aspect`,['libre (normal)','adénopathie(s) réactionnelle(s)','adénopathie(s) suspecte(s)','adénopathie(s) métastatique(s)','masse axillaire'],'single')}</div>
+  </div>
+</div>
+<div id="ax-${s}-detail" class="conditional-block" style="display:none">
+  <div class="conditional-title">📐 Adénopathies axillaire ${S}</div>
+  <div class="fs-row">
+    <div class="fg"><label class="fl">Nombre</label>
+      <div class="chips">${chips(`ax_${s}_nb`,['1','2','3','4 ou plus'],'single')}</div>
+    </div>
+    <div class="fg"><label class="fl">Taille maximale (mm)</label>
+      <input type="number" id="ax_${s}_taille" class="fi" placeholder="mm" oninput="SF('ax_${s}_taille',this.value)">
+    </div>
+  </div>
+  <div class="fs-row">
+    <div class="fg"><label class="fl">Hile adipeux</label>
+      <div class="chips">${chips(`ax_${s}_hile`,['présent (ganglion réactionnel)','absent (suspect)','partiellement absent'],'single')}</div>
+    </div>
+    <div class="fg"><label class="fl">Cortex</label>
+      <div class="chips">${chips(`ax_${s}_cortex`,['fin (< 3 mm, normal)','épaissi focal (> 3 mm)','épaissi diffus','refoulé'],'single')}</div>
+    </div>
+  </div>
+</div>`;
+}).join('')}`,
+
+birads: () => `
+<div class="hint-block">📊 Classification ACR-BIRADS 2013 – Lexique standardisé</div>
+<div class="fs-row">
+  <div class="fg"><label class="fl">BIRADS sein droit</label>
+    <div class="chips chips-birads">
+      ${[0,1,2,3,4,5,6].map(n => `<button class="chip birads-chip birads-${n}" onclick="toggleSingleChip(this,'birads_d','${n}')">${n}</button>`).join('')}
+    </div>
+  </div>
+  <div class="fg"><label class="fl">BIRADS sein gauche</label>
+    <div class="chips chips-birads">
+      ${[0,1,2,3,4,5,6].map(n => `<button class="chip birads-chip birads-${n}" onclick="toggleSingleChip(this,'birads_g','${n}')">${n}</button>`).join('')}
+    </div>
+  </div>
+</div>
+<div class="birads-legend">
+  <div class="birads-leg-item"><span class="birads-dot bd-0">0</span> Évaluation incomplète</div>
+  <div class="birads-leg-item"><span class="birads-dot bd-1">1</span> Négatif – Surveillance habituelle</div>
+  <div class="birads-leg-item"><span class="birads-dot bd-2">2</span> Bénin – Surveillance habituelle</div>
+  <div class="birads-leg-item"><span class="birads-dot bd-3">3</span> Probablement bénin – Contrôle 6 mois</div>
+  <div class="birads-leg-item"><span class="birads-dot bd-4">4</span> Suspect – Biopsie recommandée</div>
+  <div class="birads-leg-item"><span class="birads-dot bd-5">5</span> Très suspect – Biopsie urgente</div>
+  <div class="birads-leg-item"><span class="birads-dot bd-6">6</span> Malignité prouvée</div>
+</div>`
+
+} // end sein
+
+}; // end TEMPLATES
+
+// ============================================================
+// OVAIRE TEMPLATE (shared)
+// ============================================================
+function ovaireTemplate(pre, side) {
+  return `
+<div class="fs-row">
+  <div class="fg"><label class="fl">Visualisation ovaire ${side}</label>
+    <div class="chips">${chips(`${pre}_vis`,['visualisé','visualisé partiellement','non visualisé'],'single')}</div>
+  </div>
+</div>
+<div class="fs-row">
+  <div class="fg"><label class="fl">Dimensions ovaire ${side} (mm)</label>
+  <table class="mt"><thead><tr><th>Longueur</th><th>Épaisseur AP</th><th>Largeur</th><th>Volume (cm³)</th></tr></thead>
+  <tbody><tr>
+    <td><input class="mi" type="number" id="${pre}_L" placeholder="—" oninput="SF('${pre}_L',this.value)"></td>
+    <td><input class="mi" type="number" id="${pre}_AP" placeholder="—" oninput="SF('${pre}_AP',this.value)"></td>
+    <td><input class="mi" type="number" id="${pre}_T" placeholder="—" oninput="SF('${pre}_T',this.value)"></td>
+    <td><input class="mi" type="number" step="0.1" id="${pre}_vol" placeholder="—" oninput="SF('${pre}_vol',this.value)"></td>
+  </tr></tbody></table>
+  <div class="hint">Volume normal ♀ : 2-10 cm³ · Ménopause : < 3 cm³</div>
+  </div>
+</div>
+<div class="fs-row">
+  <div class="fg"><label class="fl">Échostructure</label>
+    <div class="chips">${chips(`${pre}_echostructure`,['homogène','folliculaire normal','polykystique (aspect SOPK)','hétérogène'],'single')}</div>
+  </div>
+</div>
+<div class="fs-row">
+  <div class="fg"><label class="fl">Compte folliculaire antral (CFA)</label>
+    <input type="number" id="${pre}_fac" class="fi" placeholder="nombre follicules 2-10 mm" oninput="SF('${pre}_fac',this.value)">
+    <div class="hint">CFA ≥ 12 : bonne réserve · CFA ≤ 5 : réserve diminuée · CFA ≥ 20 (côté) : SOPK</div>
+  </div>
+  <div class="fg"><label class="fl">Follicule dominant (mm)</label>
+    <input type="number" id="${pre}_foll_dominant" class="fi" placeholder="mm" oninput="SF('${pre}_foll_dominant',this.value)">
+    <div class="hint">Ovulation imminente > 18-20 mm</div>
+  </div>
+</div>
+<div class="fs-row">
+  <div class="fg"><label class="fl">Corps jaune</label>
+    <div class="chips">${chips(`${pre}_corps_jaune`,['absent','petit corps jaune','corps jaune normal','corps jaune hémorragique','corps jaune kystisé'],'single')}</div>
+  </div>
+</div>
+<div class="divider"></div>
+<div class="fs-row">
+  <div class="fg"><label class="fl">Formation kystique / masse ovarienne</label>
+    <div class="chips">${chips(`${pre}_kyste_type`,['aucune','kyste fonctionnel simple','kyste séreux','endométriome','kyste dermoïde (tératome)','cystadenome séreux','cystadénome mucineux','masse complexe','hydrosalpinx'],'single')}</div>
+  </div>
+</div>
+<div id="${pre}-kyste-detail" class="conditional-block" style="display:none">
+  <div class="conditional-title">📐 Kyste / Masse ovarienne – Détail</div>
+  <div class="fs-row">
+    <div class="fg"><label class="fl">Taille (mm)</label>
+      <input type="number" id="${pre}_kyste_taille" class="fi" placeholder="mm" oninput="SF('${pre}_kyste_taille',this.value)">
+    </div>
+    <div class="fg"><label class="fl">Paroi</label>
+      <div class="chips">${chips(`${pre}_kyste_paroi`,['fine et régulière','épaisse','irrégulière','végétations internes','végétations externes'],'single')}</div>
+    </div>
+  </div>
+  <div class="fs-row">
+    <div class="fg"><label class="fl">Cloisons</label>
+      <div class="chips">${chips(`${pre}_kyste_cloisons`,['sans cloisons (uniloculaire)','fine cloison simple','cloisons multiples fines','cloisons épaisses (> 3 mm)'],'single')}</div>
+    </div>
+    <div class="fg"><label class="fl">Contenu</label>
+      <div class="chips">${chips(`${pre}_kyste_contenu`,['anéchogène (liquidien pur)','hypoéchogène homogène','hétérogène','hyperéchogène (dermoïde)','niveau liquide-liquide (hémorragique)','contenu épais (mucineux)'],'single')}</div>
+    </div>
+  </div>
+  <div class="fs-row">
+    <div class="fg"><label class="fl">Vascularisation Doppler couleur</label>
+      <div class="chips">${chips(`${pre}_kyste_vasc`,['avasculaire','périkystique','septale','centrale (végétations vascularisées)'],'single')}</div>
+    </div>
+  </div>
+  <div class="fs-row">
+    <div class="fg"><label class="fl">Score IOTA (si applicable)</label>
+      <div class="chips">${chips(`${pre}_iota`,['M-rule (malin)','B-rule (bénin)','indéterminé'],'single')}</div>
+    </div>
+  </div>
+</div>
+<div class="fs-row">
+  <div class="fg"><label class="fl">Aspect SOPK</label>
+    <div class="chips">${chips(`${pre}_sopk`,['non évocateur de SOPK','évocateur de SOPK (CFA ≥ 20, volume > 10 cm³)'],'single')}</div>
+  </div>
+</div>
+<div class="fs-row">
+  <div class="fg"><label class="fl">Commentaires – Ovaire ${side}</label>
+    <textarea id="${pre}_comments" class="fta" placeholder="..." oninput="SF('${pre}_comments',this.value)"></textarea>
+  </div>
+</div>`;
+}
+
+// ============================================================
+// SEIN TEMPLATE (shared)
+// ============================================================
+function seinTemplate(side, sideLabel) {
+  const p = 'sein' + side;
+  return `
+<div class="hint-block">🩻 Sein ${sideLabel} – Lexique ACR-BIRADS 2013 · Examen systématique de tous quadrants + région rétroaréolaire</div>
+<div class="fs-row">
+  <div class="fg"><label class="fl">Densité / Type de parenchyme mammaire (ACR)</label>
+    <div class="chips">${chips(`${p}_tissu`,['A – Graisseux (< 25% glandes)','B – Parenchyme dispersé (25-50%)','C – Hétérogène dense (51-75%)','D – Extrêmement dense (> 75%)'],'single')}</div>
+  </div>
+</div>
+<div class="fs-row">
+  <div class="fg"><label class="fl">Aspect global du parenchyme</label>
+    <div class="chips">${chips(`${p}_aspect_global`,['homogène','hétérogène','mastic sénile','gynecomastie','implant en place'],'single')}</div>
+  </div>
+</div>
+<div class="divider"></div>
+<div class="fs-row">
+  <div class="fg"><label class="fl">Lésion focale identifiée</label>
+    <div class="chips">${chips(`${p}_lesion_presente`,['non (sein ${sideLabel} indemne)','oui – lésion identifiée'],'single')}</div>
+  </div>
+</div>
+<div id="${p}-lesion-block" class="conditional-block" style="display:none">
+  <div class="conditional-title">📐 Description lésion – Sein ${sideLabel}</div>
+  <div class="fs-row">
+    <div class="fg"><label class="fl">Type de lésion (ACR-BIRADS)</label>
+      <div class="chips">${chips(`${p}_type_lesion`,['kyste simple','kyste compliqué','kyste complexe','kyste en grappe','lésion solide','lésion complexe solide et kystique','calcifications isolées','distorsion architecturale'],'single')}</div>
+    </div>
+  </div>
+  <div class="fs-row">
+    <div class="fg"><label class="fl">Localisation – Quadrant</label>
+      <div class="chips">${chips(`${p}_quad`,['QSE (supéro-externe)','QSI (supéro-interne)','QIE (inféro-externe)','QII (inféro-interne)','centrale / sous-aréolaire','prolongement axillaire (queue de Spence)','jonction QSE/QSI','jonction QSI/QII'],'single')}</div>
+    </div>
+    <div class="fg"><label class="fl">Position horaire</label>
+      <div class="chips">${chips(`${p}_position_h`,['1h','2h','3h','4h','5h','6h','7h','8h','9h','10h','11h','12h'],'single')}</div>
+    </div>
+  </div>
+  <div class="fs-row">
+    <div class="fg"><label class="fl">Distance au mamelon (mm)</label>
+      <input type="number" id="${p}_dist_mamelon" class="fi" placeholder="mm" oninput="SF('${p}_dist_mamelon',this.value)">
+    </div>
+  </div>
+  <div class="fs-row">
+    <div class="fg"><label class="fl">Dimensions (mm) – 3 axes</label>
+      <table class="mt"><thead><tr><th>Axe 1</th><th>Axe 2</th><th>Axe 3 (profondeur)</th></tr></thead>
+      <tbody><tr>
+        <td><input class="mi" type="number" id="${p}_taille_1" placeholder="—" oninput="SF('${p}_taille_1',this.value)"></td>
+        <td><input class="mi" type="number" id="${p}_taille_2" placeholder="—" oninput="SF('${p}_taille_2',this.value)"></td>
+        <td><input class="mi" type="number" id="${p}_taille_3" placeholder="—" oninput="SF('${p}_taille_3',this.value)"></td>
+      </tr></tbody></table>
+    </div>
+  </div>
+  <div class="divider"></div>
+  <div class="fs-row">
+    <div class="fg"><label class="fl">Forme (ACR-BIRADS)</label>
+      <div class="chips">${chips(`${p}_forme`,['ovale (bénin)','ronde (bénin)','irrégulière (suspect)'],'single')}</div>
+    </div>
+    <div class="fg"><label class="fl">Orientation</label>
+      <div class="chips">${chips(`${p}_orientation`,['parallèle (plus large que haut – bénin)','non parallèle / antiparallèle (plus haute que large – suspect)'],'single')}</div>
+    </div>
+  </div>
+  <div class="fs-row">
+    <div class="fg"><label class="fl">Marges (ACR-BIRADS)</label>
+      <div class="chips">${chips(`${p}_margins`,['circonscrites (bénin)','non circonscrites – indistinctes','non circonscrites – anguleuses','non circonscrites – microlobulées','non circonscrites – spiculées (très suspect)'],'single')}</div>
+    </div>
+  </div>
+  <div class="fs-row">
+    <div class="fg"><label class="fl">Échostructure interne (ACR-BIRADS)</label>
+      <div class="chips">${chips(`${p}_echo_pattern`,['anéchogène (kyste pur)','hyperéchogène (bénin)','isoéchogène','hypoéchogène (suspect)','hétérogène (suspect)','tissu conjonctif dense (hyperéchogène fin)'],'single')}</div>
+    </div>
+  </div>
+  <div class="fs-row">
+    <div class="fg"><label class="fl">Modifications postérieures (ACR-BIRADS)</label>
+      <div class="chips">${chips(`${p}_posterior`,['aucune','renforcement postérieur (bénin)','ombre acoustique postérieure (suspect)','ombre partielle','lésion combinée'],'single')}</div>
+    </div>
+  </div>
+  <div class="fs-row">
+    <div class="fg"><label class="fl">Calcifications associées</label>
+      <div class="chips">${chips(`${p}_calcifications`,['aucune','macrocalcifications (bénin)','microcalcifications dans la lésion','microcalcifications en dehors','calcification en coquille d\'oeuf (bénin)'],'single')}</div>
+    </div>
+  </div>
+  <div class="fs-row">
+    <div class="fg"><label class="fl">Vascularisation Doppler couleur</label>
+      <div class="chips">${chips(`${p}_vascularite`,['avasculaire','vascularisation périphérique modérée','hypervascularisation intratumorale','vascularisation à basse résistance (RI < 0.7)','vascularisation à haute résistance (RI > 0.7)'],'single')}</div>
+    </div>
+  </div>
+  <div class="fs-row">
+    <div class="fg"><label class="fl">Élastographie (si disponible)</label>
+      <div class="chips">${chips(`${p}_elastographie`,['non réalisée','souple (bénin)','intermédiaire','rigide (suspect)','très rigide (malin)'],'single')}</div>
+    </div>
+  </div>
+  <div class="divider"></div>
+  <div class="fs-row">
+    <div class="fg"><label class="fl">Peau en regard</label>
+      <div class="chips">${chips(`${p}_peau`,['normale','épaississement cutané focal','rétraction cutanée','peau d\'orange','ulcération'],'single')}</div>
+    </div>
+    <div class="fg"><label class="fl">Ligaments de Cooper</label>
+      <div class="chips">${chips(`${p}_coop_lig`,['normaux','distordus','rétractés'],'single')}</div>
+    </div>
+  </div>
+  <div class="fs-row">
+    <div class="fg"><label class="fl">Implant mammaire</label>
+      <div class="chips">${chips(`${p}_implant`,['non (pas d\'implant)','implant intact (contours réguliers)','implant plissé (pli radial)','rupture intracapsulaire (signe de la linguine)','rupture extracapsulaire'],'single')}</div>
+    </div>
+  </div>
+</div>
+<div class="fs-row">
+  <div class="fg"><label class="fl">Commentaires – Sein ${sideLabel}</label>
+    <textarea id="${p}_comments" class="fta" placeholder="..." oninput="SF('${p}_comments',this.value)"></textarea>
+  </div>
+</div>`;
+}
+
+// ============================================================
+// CHIP HELPER
+// ============================================================
+function chips(key, values, mode) {
+  return values.map(v =>
+    `<button class="chip" data-key="${key}" data-val="${v}" data-mode="${mode||'multi'}" onclick="handleChip(this)">${v}</button>`
+  ).join('');
+}
+
+function bioRow(key, label, trimester) {
+  return `<tr>
+    <td><span class="bio-label">${label}</span><span class="bio-trim">${trimester}</span></td>
+    <td><input class="mi" type="number" step="0.1" id="${key}" placeholder="—" oninput="SF('${key}',this.value)"></td>
+    <td><input class="mi" type="text" id="${key}_sa" placeholder="—" oninput="SF('${key}_sa',this.value)"></td>
+    <td><input class="mi" type="text" id="${key}_pc" placeholder="—" oninput="SF('${key}_pc',this.value)"></td>
+  </tr>`;
+}
+
+</script>
+<script>
+'use strict';
+
+// ==================== STATE ====================
+let S = {};
+let savedReports = [];
+let editIdx = -1;
+
+function resetState(type) {
+  S = {
+    examType: type, probe: null,
+    patientName:'', patientDob:'', examDate: todayISO(), refDoctor:'Dr. Johnny Barakat',
+    indications:[], indicationFree:'',
+    findings:{}, images:[],
+    conclusion:'', recommendations:''
+  };
+}
+
+function todayISO() { return new Date().toISOString().split('T')[0]; }
+
+// ==================== STORAGE ====================
+function loadReports() {
+  try { savedReports = JSON.parse(localStorage.getItem('echoReports_v2') || '[]'); } catch(e) { savedReports = []; }
+}
+function saveReports() {
+  localStorage.setItem('echoReports_v2', JSON.stringify(savedReports));
+}
+
+// ==================== NAVIGATION ====================
+function goTo(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  window.scrollTo(0, 0);
+}
+
+// ==================== HOME ====================
+function renderHome() {
+  loadReports();
+  const list = document.getElementById('reports-list');
+  const empty = document.getElementById('empty-msg');
+  const btnClear = document.getElementById('btn-clear-all');
+  if (!savedReports.length) {
+    empty.style.display = 'block'; btnClear.style.display = 'none';
+    list.querySelectorAll('.report-item').forEach(el => el.remove());
+    return;
+  }
+  empty.style.display = 'none'; btnClear.style.display = 'block';
+  list.innerHTML = savedReports.map((r, i) => `
+    <div class="report-item">
+      <div class="rpt-icon">${MEDICAL[r.examType]?.icon || '📄'}</div>
+      <div class="rpt-info">
+        <div class="rpt-name">${r.patientName || 'Patiente sans nom'}</div>
+        <div class="rpt-meta">${r.examDate || ''} · ${MEDICAL[r.examType]?.label || ''} · ${probeLabel(r.probe)}</div>
+      </div>
+      <div class="rpt-actions">
+        <button class="btn-icon" data-action="edit" data-idx="${i}" title="Modifier">✏️</button>
+        <button class="btn-icon" data-action="view" data-idx="${i}" title="Aperçu">👁</button>
+        <button class="btn-icon del" data-action="delete" data-idx="${i}" title="Supprimer">🗑</button>
+      </div>
+    </div>`).join('');
+
+  // Single delegated listener on the list
+  list.onclick = function(e) {
+    const btn = e.target.closest('[data-action]');
+    if (!btn) return;
+    const idx = parseInt(btn.dataset.idx);
+    const action = btn.dataset.action;
+    if (action === 'edit')   editReport(idx);
+    if (action === 'view')   viewReport(idx);
+    if (action === 'delete') deleteReport(idx);
+  };
+}
+
+function clearAll() {
+  if (!confirmAction('Effacer TOUS les rapports sauvegardés ?')) return;
+  savedReports = []; saveReports(); renderHome();
+  toast('🗑 Tous les rapports effacés');
+}
+function deleteReport(i) {
+  if (i < 0 || i >= savedReports.length) return;
+  const name = savedReports[i].patientName || 'ce rapport';
+  if (!confirmAction(`Supprimer le rapport de ${name} ?`)) return;
+  savedReports.splice(i, 1); saveReports(); renderHome();
+  toast('🗑 Rapport supprimé');
+}
+function clearInfoFields() {
+  if (!confirmAction('Effacer toutes les données de la patiente et de l\'examen ?')) return;
+  // Reset patient fields
+  document.getElementById('patient-name').value = '';
+  document.getElementById('patient-dob').value = '';
+  document.getElementById('exam-date').valueAsDate = new Date();
+  document.getElementById('ref-doctor').value = 'Dr. Johnny Barakat';
+  document.getElementById('indication-free').value = '';
+  // Deselect all probe buttons
+  document.querySelectorAll('.probe-btn').forEach(b => b.classList.remove('on'));
+  // Deselect all indication chips
+  document.querySelectorAll('#indication-chips .chip').forEach(c => c.classList.remove('on'));
+  // Reset state
+  const type = S.examType;
+  resetState(type);
+  toast('✅ Champs effacés');
+}
+
+function clearFindingsFields() {
+  if (!confirmAction('Effacer toutes les données échographiques saisies ?')) return;
+  // Reset findings in state
+  S.findings = {};
+  S.images = [];
+  S.conclusion = '';
+  S.recommendations = '';
+  // Reset all input/textarea values in findings panels
+  document.querySelectorAll('#findings-panels input, #findings-panels textarea, #findings-panels select').forEach(el => {
+    el.value = '';
+  });
+  // Deselect all chips in findings
+  document.querySelectorAll('#findings-panels .chip').forEach(c => c.classList.remove('on'));
+  // Hide all conditional blocks
+  document.querySelectorAll('.conditional-block').forEach(b => b.style.display = 'none');
+  // Clear images grid
+  renderImages();
+  // Clear conclusion/recommendations
+  document.getElementById('conclusion').value = '';
+  document.getElementById('recommendations').value = '';
+  // Reset cached PDF
+  window._lastPdfBlob = null;
+  toast('✅ Données échographiques effacées');
+}
+
+function confirmAction(msg) {
+  try { return window.confirm(msg); } catch(e) { return true; }
+}
+function editReport(i) {
+  editIdx = i; S = JSON.parse(JSON.stringify(savedReports[i]));
+  buildInfoScreen(); restoreInfoScreen(); goTo('screen-info');
+}
+function viewReport(i) {
+  S = JSON.parse(JSON.stringify(savedReports[i]));
+  buildPreview();
+  goTo('screen-preview');
+  setTimeout(updateSigBtn, 50);
+}
+
+// ==================== INFO SCREEN ====================
+function startExam(type) {
+  editIdx = -1; resetState(type);
+  buildInfoScreen(); goTo('screen-info');
+}
+
+function buildInfoScreen() {
+  const cfg = MEDICAL[S.examType];
+  document.getElementById('info-title').textContent = cfg.label;
+  // Indication chips
+  const chips = document.getElementById('indication-chips');
+  chips.innerHTML = cfg.indications.map(ind =>
+    `<button class="chip" data-key="indication" data-val="${ind}" data-mode="multi" onclick="handleChip(this)">${ind}</button>`
+  ).join('');
+}
+
+function restoreInfoScreen() {
+  // Probe
+  document.querySelectorAll('.probe-btn').forEach(b => b.classList.remove('on'));
+  if (S.probe) document.getElementById('pb-' + S.probe)?.classList.add('on');
+  // Fields
+  document.getElementById('patient-name').value = S.patientName || '';
+  document.getElementById('patient-dob').value = S.patientDob || '';
+  document.getElementById('exam-date').value = S.examDate || todayISO();
+  document.getElementById('ref-doctor').value = S.refDoctor || 'Dr. Johnny Barakat';
+  document.getElementById('indication-free').value = S.indicationFree || '';
+  // Indication chips
+  document.querySelectorAll('#indication-chips .chip').forEach(c => {
+    if (S.indications.includes(c.dataset.val)) c.classList.add('on');
+  });
+}
+
+function selectProbe(type) {
+  S.probe = type;
+  document.querySelectorAll('.probe-btn').forEach(b => b.classList.remove('on'));
+  document.getElementById('pb-' + type)?.classList.add('on');
+}
+
+function goToFindings() {
+  S.patientName = document.getElementById('patient-name').value.trim();
+  S.patientDob = document.getElementById('patient-dob').value;
+  S.examDate = document.getElementById('exam-date').value;
+  S.refDoctor = document.getElementById('ref-doctor').value.trim();
+  S.indicationFree = document.getElementById('indication-free').value.trim();
+  if (!S.patientName) { toast('⚠️ Veuillez saisir le nom de la patiente'); return; }
+  if (!S.probe) { toast('⚠️ Veuillez sélectionner une sonde'); return; }
+  if (!S.examDate) { toast('⚠️ Date de l\'examen requise'); return; }
+  buildFindingsScreen(); goTo('screen-findings');
+}
+
+// ==================== FINDINGS SCREEN ====================
+function buildFindingsScreen() {
+  const cfg = MEDICAL[S.examType];
+  document.getElementById('findings-title').textContent = S.patientName;
+  const tabsEl = document.getElementById('findings-tabs');
+  const panelsEl = document.getElementById('findings-panels');
+
+  tabsEl.innerHTML = cfg.tabs.map((tab, i) =>
+    `<button class="tab-btn${i===0?' active':''}" onclick="switchTab(this,'fp-${i}')">${tab.label}</button>`
+  ).join('');
+
+  panelsEl.innerHTML = cfg.tabs.map((tab, i) => {
+    const tpl = TEMPLATES[S.examType][tab.id];
+    const html = tpl ? tpl() : '<p style="color:var(--mist);padding:20px">À compléter</p>';
+    return `<div class="tab-panel${i===0?' active':''}" id="fp-${i}">${html}</div>`;
+  }).join('');
+
+  // Restore findings
+  restoreFindings();
+  // Restore images
+  renderImages();
+  // Restore conclusion
+  document.getElementById('conclusion').value = S.conclusion || '';
+  document.getElementById('recommendations').value = S.recommendations || '';
+
+  // Init conditional blocks
+  initConditionals();
+  // Init drag drop
+  initDragDrop();
+}
+
+function switchTab(btn, panelId) {
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById(panelId)?.classList.add('active');
+}
+
+// ==================== CHIP HANDLER ====================
+function handleChip(btn) {
+  const key = btn.dataset.key;
+  const val = btn.dataset.val;
+  const mode = btn.dataset.mode;
+
+  if (key === 'indication') {
+    btn.classList.toggle('on');
+    const idx = S.indications.indexOf(val);
+    if (idx === -1) S.indications.push(val);
+    else S.indications.splice(idx, 1);
+    return;
+  }
+
+  if (mode === 'single') {
+    // Deselect siblings with same key
+    btn.closest('.chips')?.querySelectorAll(`[data-key="${key}"]`).forEach(b => b.classList.remove('on'));
+    const wasOn = S.findings[key] === val;
+    btn.classList.toggle('on', !wasOn);
+    S.findings[key] = wasOn ? '' : val;
+  } else {
+    // multi
+    btn.classList.toggle('on');
+    if (!Array.isArray(S.findings[key])) S.findings[key] = [];
+    const idx = S.findings[key].indexOf(val);
+    if (idx === -1) S.findings[key].push(val);
+    else S.findings[key].splice(idx, 1);
+  }
+  checkConditionals(key, val, btn.classList.contains('on'));
+}
+
+function toggleSingleChip(btn, key, val) {
+  btn.closest('.chips')?.querySelectorAll(`[onclick*="${key}"]`).forEach(b => b.classList.remove('on'));
+  const wasOn = S.findings[key] === val;
+  btn.classList.toggle('on', !wasOn);
+  S.findings[key] = wasOn ? '' : val;
+}
+
+// SF = setFinding
+function SF(key, val) { S.findings[key] = val; }
+
+function restoreFindings() {
+  const f = S.findings;
+  Object.entries(f).forEach(([key, val]) => {
+    // Restore input values
+    const el = document.getElementById(key);
+    if (el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.tagName === 'SELECT')) {
+      el.value = val;
+    }
+    // Restore chips
+    document.querySelectorAll(`[data-key="${key}"]`).forEach(btn => {
+      const bval = btn.dataset.val;
+      if (Array.isArray(val)) {
+        btn.classList.toggle('on', val.includes(bval));
+      } else {
+        btn.classList.toggle('on', val === bval);
+      }
+    });
+    // Restore onclick chips (birads)
+    document.querySelectorAll(`[onclick*="toggleSingleChip"][onclick*="'${key}'"]`).forEach(btn => {
+      const match = btn.getAttribute('onclick').match(/'([^']+)'\)$/);
+      if (match) btn.classList.toggle('on', val === match[1]);
+    });
+  });
+}
+
+// ==================== CONDITIONALS ====================
+function initConditionals() {
+  // Trigger all existing findings to show conditionals
+  const condMap = getCondMap();
+  Object.entries(S.findings).forEach(([key, val]) => {
+    const vals = Array.isArray(val) ? val : [val];
+    vals.forEach(v => checkConditionals(key, v, true));
+  });
+}
+
+function checkConditionals(key, val, isOn) {
+  const show = (id, condition) => {
+    const el = document.getElementById(id);
+    if (el) el.style.display = condition ? 'block' : 'none';
+  };
+
+  if (key === 'myometre_pathologie') {
+    show('fibrome-block', isOn && val.includes('fibrome'));
+    show('adenomyose-block', isOn && val.includes('adénomyose'));
+  }
+  if (key === 'douglas_etat') {
+    show('douglas-ep-block', isOn && val.includes('épanchement'));
+  }
+  if (key === 'trompes_aspect') {
+    show('hydrosalpinx-block', isOn && (val.includes('hydrosalpinx') || val.includes('pyosalpinx')));
+  }
+  // Ovary kyste details
+  ['od','og'].forEach(p => {
+    if (key === `${p}_kyste_type`) {
+      const el = document.getElementById(`${p}-kyste-detail`);
+      if (el) el.style.display = (isOn && val !== 'aucune') ? 'block' : 'none';
+    }
+  });
+  // Breast lesion details
+  ['D','G'].forEach(s => {
+    const p = 'sein' + s;
+    if (key === `${p}_lesion_presente`) {
+      const el = document.getElementById(`${p}-lesion-block`);
+      if (el) el.style.display = (isOn && val.includes('oui')) ? 'block' : 'none';
+    }
+  });
+  // Axillaire
+  ['D','G'].forEach(s => {
+    if (key === `ax_${s}_aspect`) {
+      const el = document.getElementById(`ax-${s}-detail`);
+      if (el) el.style.display = (isOn && val.includes('adénopathie')) ? 'block' : 'none';
+    }
+  });
+}
+
+function getCondMap() { return {}; }
+
+// ==================== IMAGES ====================
+function handleImages(e) {
+  Array.from(e.target.files).forEach(f => {
+    const r = new FileReader();
+    r.onload = ev => { S.images.push({ src: ev.target.result, name: f.name }); renderImages(); };
+    r.readAsDataURL(f);
+  });
+}
+function renderImages() {
+  const g = document.getElementById('images-grid');
+  if (!g) return;
+  g.innerHTML = S.images.map((img, i) => `
+    <div class="img-thumb">
+      <img src="${img.src}" alt="Echo ${i+1}">
+      <button class="img-remove" onclick="removeImg(${i})">✕</button>
+      <div class="img-cap">Img ${i+1}</div>
+    </div>`).join('');
+}
+function removeImg(i) { S.images.splice(i, 1); renderImages(); }
+
+function initDragDrop() {
+  const zone = document.getElementById('upload-zone');
+  if (!zone) return;
+  zone.addEventListener('dragover', e => { e.preventDefault(); zone.classList.add('drag'); });
+  zone.addEventListener('dragleave', () => zone.classList.remove('drag'));
+  zone.addEventListener('drop', e => {
+    e.preventDefault(); zone.classList.remove('drag');
+    Array.from(e.dataTransfer.files).filter(f => f.type.startsWith('image/')).forEach(f => {
+      const r = new FileReader();
+      r.onload = ev => { S.images.push({ src: ev.target.result, name: f.name }); renderImages(); };
+      r.readAsDataURL(f);
+    });
+  });
+}
+
+// ==================== PREVIEW ====================
+function generatePreview() {
+  S.conclusion = document.getElementById('conclusion').value.trim();
+  S.recommendations = document.getElementById('recommendations').value.trim();
+  window._lastPdfBlob = null;
+  window._lastPdfName = null;
+  buildPreview();
+  goTo('screen-preview');
+  setTimeout(updateSigBtn, 50);
+}
+
+function buildPreview() {
+  const cfg = MEDICAL[S.examType];
+  const indStr = [...S.indications, S.indicationFree].filter(Boolean).join(' ; ');
+  let narrativeSections = [];
+
+  if (S.examType === 'gyn') narrativeSections = getNarrative('gyn');
+  else if (S.examType === 'obs') narrativeSections = getNarrative('obs');
+  else if (S.examType === 'sein') narrativeSections = getNarrative('sein');
+
+  const dob = S.patientDob ? ` · ${T('dob')} ${fmtDate(S.patientDob)}` : '';
+
+  const examLabel = LANG === 'en'
+    ? { gyn: T('gynLabel'), obs: T('obsLabel'), sein: T('seinLabel') }[S.examType]
+    : cfg.label;
+
+  const imagesHtml = S.images.length ?
+    `<div class="rpt-sec-title">${T('imagesTitle')}</div>
+     <div class="rpt-imgs">${S.images.map(img => `<img src="${img.src}" alt="echo">`).join('')}</div>` : '';
+
+  const narrativeHtml = narrativeSections.map(sec => `
+    ${sec.title ? `<div class="rpt-sec-title">${sec.title}</div>` : ''}
+    <p class="rpt-para">${sec.text}</p>
+  `).join('');
+
+  document.getElementById('rpt-content').innerHTML = `
+    <div class="rpt-header">
+      <div>
+        <div class="rpt-doctor">Dr.&nbsp;<em>Johnny Barakat</em></div>
+        <div class="rpt-spec">${T('specLine')}</div>
+      </div>
+      <div class="rpt-logo">
+        <div class="rpt-logo-txt">VINNO</div>
+        <div class="rpt-logo-sub">${T('logoSub')}</div>
+      </div>
+    </div>
+    <div class="rpt-title-bar">${examLabel}</div>
+    <table class="rpt-meta">
+      <tr><td>${T('patiente')}</td><td><strong>${S.patientName || '—'}</strong>${dob}</td></tr>
+      <tr><td>${T('dateExamen')}</td><td>${fmtDate(S.examDate) || '—'}</td></tr>
+      <tr><td>${T('sonde')}</td><td>${probeLabelL(S.probe)} – ${T('machineVinno')}</td></tr>
+      <tr><td>${T('referent')}</td><td>${S.refDoctor || '—'}</td></tr>
+      <tr><td>${T('indication')}</td><td>${indStr || '—'}</td></tr>
+    </table>
+
+    ${narrativeHtml}
+    ${imagesHtml}
+
+    ${S.conclusion ? `
+      <div class="rpt-sec-title">${T('conclusionTitle')}</div>
+      <div class="rpt-conclusion"><strong>${T('conclusionLabel')}</strong> ${S.conclusion}</div>` : ''}
+
+    ${S.recommendations ? `
+      <div class="rpt-sec-title">${T('recommendationsTitle')}</div>
+      <p class="rpt-para">${S.recommendations}</p>` : ''}
+
+    <div class="rpt-footer">
+      <div>
+        <div>${T('footerLine')}</div>
+        <div style="margin-top:2px">${new Date().toLocaleDateString(T('dateLocale'), T('dateOptions'))}</div>
+      </div>
+      <div class="rpt-sig">
+        ${getSavedSig() ? `<img class="rpt-sig-img" src="${getSavedSig()}" alt="Signature Dr. Barakat">` : '<div class="rpt-sig-line"></div>'}
+        <div class="rpt-sig-name">Dr. Johnny Barakat</div>
+        <div class="rpt-sig-sub">${T('sigSub')}</div>
+      </div>
+    </div>`;
+}
+
+// ==================== PDF SAVE ====================
+function savePDF() {
+  // Save to storage
+  const data = JSON.parse(JSON.stringify(S));
+  if (editIdx >= 0) savedReports[editIdx] = data;
+  else savedReports.unshift(data);
+  saveReports(); renderHome();
+
+  // Generate PDF
+  try {
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF({ format: 'a4', unit: 'mm' });
+    const pw = doc.internal.pageSize.getWidth();
+    const ph = doc.internal.pageSize.getHeight();
+    const mg = 18;
+    let y = mg;
+
+    const nl = (n=5) => { y += n; };
+    const chk = (need=12) => { if (y + need > ph - mg) { doc.addPage(); y = mg; } };
+
+    const txt = (text, size, style, color, maxW, align) => {
+      doc.setFontSize(size); doc.setFont('helvetica', style||'normal');
+      doc.setTextColor(...(color||[14,17,23]));
+      const lines = doc.splitTextToSize(String(text), maxW||(pw-mg*2));
+      doc.text(lines, align==='right' ? pw-mg : mg, y, align==='right' ? {align:'right'} : {});
+      y += lines.length * (size * 0.42) + 1.5;
+      return lines.length;
+    };
+
+    // Header background
+    doc.setFillColor(14, 17, 23);
+    doc.rect(0, 0, pw, 30, 'F');
+    // Gold accent line
+    doc.setFillColor(184, 147, 90);
+    doc.rect(0, 30, pw, 1.2, 'F');
+
+    doc.setFontSize(20); doc.setFont('helvetica','bold'); doc.setTextColor(255,255,255);
+    doc.text('Dr. Johnny Barakat', mg, 13);
+    doc.setFontSize(8.5); doc.setFont('helvetica','normal'); doc.setTextColor(160,165,175);
+    doc.text(T('specPDF'), mg, 20);
+    doc.setFontSize(11); doc.setTextColor(184,147,90); doc.setFont('helvetica','bold');
+    doc.text('VINNO', pw-mg, 18, {align:'right'});
+    y = 38;
+
+    // Title bar
+    const examLabelPDF = LANG === 'en'
+      ? { gyn: T('gynLabel'), obs: T('obsLabel'), sein: T('seinLabel') }[S.examType]
+      : MEDICAL[S.examType].label;
+    doc.setFillColor(30, 35, 48);
+    doc.rect(mg, y, pw-mg*2, 9, 'F');
+    doc.setFontSize(11); doc.setFont('helvetica','bold'); doc.setTextColor(255,255,255);
+    doc.text(examLabelPDF, pw/2, y+6.3, {align:'center'});
+    y += 14;
+
+    // Meta table
+    const indStr = [...S.indications, S.indicationFree].filter(Boolean).join(' ; ');
+    const metas = [
+      [T('pdfPatiente'), S.patientName + (S.patientDob ? ` (${T('pdfBorn')} ${fmtDate(S.patientDob)})` : '')],
+      [T('pdfDate'), fmtDate(S.examDate)],
+      [T('pdfSonde'), probeLabelL(S.probe) + ' – ' + T('machineVinno')],
+      [T('pdfRef'), S.refDoctor || '—'],
+      [T('pdfInd'), indStr || '—']
+    ];
+    metas.forEach(([k,v]) => {
+      chk(8);
+      doc.setFillColor(244,245,248);
+      doc.rect(mg, y, 52, 7, 'F');
+      doc.setFillColor(232,234,239);
+      doc.rect(mg+52, y, pw-mg*2-52, 7, 'F');
+      doc.setFontSize(7.5); doc.setFont('helvetica','bold'); doc.setTextColor(90,98,120);
+      doc.text(k, mg+2, y+5);
+      doc.setFont('helvetica','normal'); doc.setTextColor(14,17,23);
+      const vl = doc.splitTextToSize(v, pw-mg*2-56);
+      vl.forEach((line, li) => {
+        if (li > 0) { y += 5; chk(5); doc.setFillColor(232,234,239); doc.rect(mg+52, y, pw-mg*2-52, 5, 'F'); }
+        doc.text(line, mg+55, y+4.5);
+      });
+      y += 7;
+    });
+    y += 5;
+
+    // Narrative sections
+    const sections = getNarrative(S.examType);
+
+    sections.forEach(sec => {
+      chk(16);
+      if (sec.title) {
+        // Section header
+        doc.setFillColor(184,147,90);
+        doc.rect(mg, y, 3.5, 6, 'F');
+        doc.setFontSize(10); doc.setFont('helvetica','bold'); doc.setTextColor(14,17,23);
+        doc.text(sec.title, mg+6, y+5);
+        y += 9;
+      }
+      chk(10);
+      doc.setFontSize(9.5); doc.setFont('helvetica','normal'); doc.setTextColor(30,35,48);
+      const plines = doc.splitTextToSize(sec.text, pw-mg*2);
+      plines.forEach(line => { chk(5); doc.text(line, mg, y); y += 4.8; });
+      y += 3;
+    });
+
+    // Images
+    if (S.images.length) {
+      chk(24);
+      doc.setFillColor(184,147,90); doc.rect(mg, y, 3.5, 6, 'F');
+      doc.setFontSize(10); doc.setFont('helvetica','bold'); doc.setTextColor(14,17,23);
+      doc.text('IMAGES ÉCHOGRAPHIQUES', mg+6, y+5); y += 10;
+      const iw = (pw - mg*2 - 8) / 3, ih = iw * 0.75;
+      let col = 0, rowY = y;
+      S.images.forEach((img, idx) => {
+        if (col === 3) { col = 0; rowY += ih + 4; y = rowY + ih + 4; chk(ih+4); }
+        const x = mg + col * (iw + 4);
+        try { doc.addImage(img.src, 'JPEG', x, rowY, iw, ih); } catch(e){}
+        col++;
+      });
+      y = rowY + ih + 8;
+    }
+
+    // Conclusion
+    if (S.conclusion) {
+      chk(20);
+      doc.setFillColor(184,147,90); doc.rect(mg, y, 3.5, 6, 'F');
+      doc.setFontSize(10); doc.setFont('helvetica','bold'); doc.setTextColor(14,17,23);
+      doc.text(T('pdfConclusion'), mg+6, y+5); y += 10;
+      const cl = doc.splitTextToSize(S.conclusion, pw-mg*2-10);
+      doc.setFillColor(250,245,237);
+      doc.rect(mg, y-2, pw-mg*2, cl.length*5+6, 'F');
+      doc.setFontSize(9.5); doc.setFont('helvetica','normal'); doc.setTextColor(30,35,48);
+      cl.forEach(l => { doc.text(l, mg+4, y+3.5); y += 5; }); y += 6;
+    }
+
+    // Recommendations
+    if (S.recommendations) {
+      chk(16);
+      doc.setFontSize(9.5); doc.setFont('helvetica','bold'); doc.setTextColor(14,17,23);
+      doc.text(T('pdfReco'), mg, y); y += 6;
+      doc.setFont('helvetica','normal'); doc.setTextColor(30,35,48);
+      const rl = doc.splitTextToSize(S.recommendations, pw-mg*2);
+      rl.forEach(l => { chk(5); doc.text(l, mg, y); y += 5; }); y += 4;
+    }
+
+    // Signature block above footer
+    const savedSig = getSavedSig();
+    if (savedSig) {
+      chk(28);
+      // Signature image right-aligned
+      try {
+        doc.addImage(savedSig, 'PNG', pw - mg - 50, y, 50, 18);
+      } catch(e) {}
+      y += 20;
+    } else {
+      chk(16);
+      // Blank signature line
+      doc.setDrawColor(180,185,195);
+      doc.line(pw - mg - 55, y + 12, pw - mg, y + 12);
+      y += 16;
+    }
+    // Name + title right-aligned
+    doc.setFontSize(9); doc.setFont('helvetica','italic'); doc.setTextColor(14,17,23);
+    doc.text('Dr. Johnny Barakat', pw-mg, y, {align:'right'}); y += 5;
+    doc.setFontSize(7.5); doc.setFont('helvetica','normal'); doc.setTextColor(90,98,120);
+    doc.text(T('sigSub'), pw-mg, y, {align:'right'}); y += 8;
+
+    // Footer bar
+    doc.setFillColor(244,245,248);
+    doc.rect(0, ph-14, pw, 14, 'F');
+    doc.setFontSize(7.5); doc.setFont('helvetica','normal'); doc.setTextColor(138,146,164);
+    doc.text(T('footerLine') + ' · ' + new Date().toLocaleDateString(T('dateLocale')), mg, ph-5);
+
+    const fname = `Echo_${(S.patientName||'patient').replace(/\s+/g,'_')}_${S.examDate||'date'}.pdf`;
+
+    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+
+    if (isIOS) {
+      // iOS: convert to blob URL and show in modal for user to open/share
+      const pdfBlob = doc.output('blob');
+      const blobURL = URL.createObjectURL(pdfBlob);
+      const modal = document.getElementById('ios-pdf-modal');
+      const link  = document.getElementById('ios-pdf-link');
+      const hint  = document.getElementById('ios-pdf-hint');
+      link.href = blobURL;
+      link.download = fname;
+      hint.innerHTML = `PDF prêt : <strong>${fname}</strong><br><br>Appuyez sur <strong>Ouvrir le PDF</strong> puis utilisez <strong>⎙ Partager</strong> pour :<br>• Enregistrer dans Fichiers<br>• Imprimer<br>• Envoyer vers SharpDesk`;
+      modal.style.display = 'flex';
+      // Also store blob globally for SharpDesk use
+      window._lastPdfBlob = blobURL;
+      window._lastPdfName = fname;
+    } else {
+      // Desktop: direct download
+      doc.save(fname);
+      toast('✅ PDF enregistré : ' + fname);
+    }
+
+  } catch(err) {
+    toast('❌ Erreur PDF : ' + err.message);
+    console.error(err);
+  }
+}
+
+function printReport() {
+  const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+  if (isIOS) {
+    // On iOS: generate PDF then open it — user taps Share → Print (AirPrint)
+    if (window._lastPdfBlob) {
+      const modal = document.getElementById('ios-pdf-modal');
+      const hint  = document.getElementById('ios-pdf-hint');
+      const link  = document.getElementById('ios-pdf-link');
+      link.href = window._lastPdfBlob;
+      hint.innerHTML = `Appuyez sur <strong>Ouvrir le PDF</strong> puis :<br>1. Tapez l'icône <strong>⎙ Partager</strong><br>2. Choisissez <strong>Imprimer</strong> (AirPrint)<br>3. Sélectionnez votre imprimante`;
+      modal.style.display = 'flex';
+    } else {
+      // Generate PDF first then show
+      savePDF();
+    }
+  } else {
+    window.print();
+  }
+}
+
+function sharpDesk() {
+  const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+
+  // First make sure PDF is generated
+  if (!window._lastPdfBlob) {
+    savePDF();
+    // On desktop savePDF downloads directly, no SharpDesk needed
+    if (!isIOS) return;
+    setTimeout(() => _openSharpDesk(), 600);
+    return;
+  }
+  _openSharpDesk();
+}
+
+function _openSharpDesk() {
+  const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+  if (isIOS) {
+    const modal = document.getElementById('ios-pdf-modal');
+    const hint  = document.getElementById('ios-pdf-hint');
+    const link  = document.getElementById('ios-pdf-link');
+    link.href = window._lastPdfBlob || '#';
+    hint.innerHTML = `Pour envoyer vers <strong>SharpDesk Mobile</strong> :<br><br>1. Appuyez sur <strong>Ouvrir le PDF</strong><br>2. Tapez <strong>⎙ Partager</strong><br>3. Cherchez <strong>SharpDesk Mobile</strong> dans la liste<br><br><em>Si SharpDesk n'apparaît pas, allez dans Autres et activez-le.</em>`;
+    modal.style.display = 'flex';
+    // Also try direct URL scheme after a short delay
+    setTimeout(() => {
+      const iframe = document.createElement('iframe');
+      iframe.style.display = 'none';
+      iframe.src = 'sharpdeskmobile://';
+      document.body.appendChild(iframe);
+      setTimeout(() => document.body.removeChild(iframe), 2000);
+    }, 500);
+  } else {
+    toast('📲 Sur iPhone : PDF → Partager → SharpDesk Mobile');
+  }
+}
+
+// ==================== HELPERS ====================
+function probeLabel(p) {
+  return {'vaginale':'Sonde endovaginale 2D','abdominale-2d':'Abdominale convexe 2D','abdominale-3d':'Abdominale volumique 3D','lineaire':'Linéaire haute fréquence'}[p] || p || '—';
+}
+
+function fmtDate(iso) {
+  if (!iso) return '—';
+  const [y,m,d] = iso.split('-');
+  return `${d}/${m}/${y}`;
+}
+
+function toast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 3500);
+}
+
+// ==================== SIGNATURE ====================
+const SIG_KEY = 'echoSig_drBarakat';
+
+function getSavedSig() {
+  return localStorage.getItem(SIG_KEY) || null;
+}
+
+function openSigModal() {
+  const overlay = document.getElementById('sig-modal-overlay');
+  overlay.classList.add('open');
+  const saved = getSavedSig();
+  if (saved) {
+    document.getElementById('sig-saved-area').style.display = 'block';
+    document.getElementById('sig-new-area').style.display = 'none';
+    document.getElementById('sig-saved-preview').src = saved;
+    document.getElementById('sig-modal-sub').textContent = 'Votre signature est mémorisée et sera apposée automatiquement sur tous vos rapports.';
+  } else {
+    document.getElementById('sig-saved-area').style.display = 'none';
+    document.getElementById('sig-new-area').style.display = 'block';
+    document.getElementById('sig-modal-sub').textContent = 'Signez dans le cadre ci-dessous. Elle sera mémorisée et apposée sur tous vos rapports.';
+    initSigCanvas();
+  }
+}
+
+function closeSigModal() {
+  document.getElementById('sig-modal-overlay').classList.remove('open');
+}
+
+function resetSavedSig() {
+  localStorage.removeItem(SIG_KEY);
+  document.getElementById('sig-saved-area').style.display = 'none';
+  document.getElementById('sig-new-area').style.display = 'block';
+  document.getElementById('sig-modal-sub').textContent = 'Dessinez votre nouvelle signature ci-dessous.';
+  initSigCanvas();
+}
+
+// ---- Canvas drawing ----
+let _sigCtx = null, _sigDrawing = false, _sigLast = null;
+
+function initSigCanvas() {
+  const canvas = document.getElementById('sig-canvas');
+  if (!canvas) return;
+  // Set canvas pixel size to match display size
+  const wrap = canvas.parentElement;
+  const W = wrap.clientWidth || 360;
+  canvas.width = W;
+  canvas.height = 160;
+  const ctx = canvas.getContext('2d');
+  ctx.clearRect(0, 0, W, 160);
+  ctx.strokeStyle = '#0e1117';
+  ctx.lineWidth = 2.2;
+  ctx.lineCap = 'round';
+  ctx.lineJoin = 'round';
+  _sigCtx = ctx;
+  _sigDrawing = false;
+
+  // Remove old listeners by cloning
+  const newCanvas = canvas.cloneNode(true);
+  canvas.parentNode.replaceChild(newCanvas, canvas);
+  const c = document.getElementById('sig-canvas');
+  const ctx2 = c.getContext('2d');
+  ctx2.strokeStyle = '#0e1117';
+  ctx2.lineWidth = 2.2;
+  ctx2.lineCap = 'round';
+  ctx2.lineJoin = 'round';
+  _sigCtx = ctx2;
+
+  // Mouse events
+  c.addEventListener('mousedown', e => { _sigDrawing = true; _sigLast = getPos(c, e); });
+  c.addEventListener('mousemove', e => { if (!_sigDrawing) return; drawSigLine(c, getPos(c, e)); });
+  c.addEventListener('mouseup', () => { _sigDrawing = false; _sigLast = null; });
+  c.addEventListener('mouseleave', () => { _sigDrawing = false; _sigLast = null; });
+
+  // Touch events (iPhone / iPad)
+  c.addEventListener('touchstart', e => {
+    e.preventDefault();
+    _sigDrawing = true;
+    _sigLast = getTouchPos(c, e.touches[0]);
+  }, { passive: false });
+  c.addEventListener('touchmove', e => {
+    e.preventDefault();
+    if (!_sigDrawing) return;
+    drawSigLine(c, getTouchPos(c, e.touches[0]));
+  }, { passive: false });
+  c.addEventListener('touchend', e => {
+    e.preventDefault();
+    _sigDrawing = false; _sigLast = null;
+  }, { passive: false });
+}
+
+function getPos(canvas, e) {
+  const r = canvas.getBoundingClientRect();
+  const scaleX = canvas.width / r.width;
+  const scaleY = canvas.height / r.height;
+  return { x: (e.clientX - r.left) * scaleX, y: (e.clientY - r.top) * scaleY };
+}
+
+function getTouchPos(canvas, touch) {
+  const r = canvas.getBoundingClientRect();
+  const scaleX = canvas.width / r.width;
+  const scaleY = canvas.height / r.height;
+  return { x: (touch.clientX - r.left) * scaleX, y: (touch.clientY - r.top) * scaleY };
+}
+
+function drawSigLine(canvas, pos) {
+  if (!_sigLast) { _sigLast = pos; return; }
+  const ctx = canvas.getContext('2d');
+  ctx.strokeStyle = '#0e1117';
+  ctx.lineWidth = 2.2;
+  ctx.lineCap = 'round';
+  ctx.lineJoin = 'round';
+  ctx.beginPath();
+  ctx.moveTo(_sigLast.x, _sigLast.y);
+  ctx.lineTo(pos.x, pos.y);
+  ctx.stroke();
+  _sigLast = pos;
+}
+
+function clearSigCanvas() {
+  const c = document.getElementById('sig-canvas');
+  if (!c) return;
+  const ctx = c.getContext('2d');
+  ctx.clearRect(0, 0, c.width, c.height);
+  _sigLast = null;
+}
+
+function isSigCanvasBlank() {
+  const c = document.getElementById('sig-canvas');
+  if (!c) return true;
+  const ctx = c.getContext('2d');
+  const data = ctx.getImageData(0, 0, c.width, c.height).data;
+  for (let i = 3; i < data.length; i += 4) {
+    if (data[i] > 10) return false; // found non-transparent pixel
+  }
+  return true;
+}
+
+function saveSig() {
+  const c = document.getElementById('sig-canvas');
+  if (!c || isSigCanvasBlank()) {
+    toast('⚠️ Veuillez d\'abord dessiner votre signature');
+    return;
+  }
+  // Trim whitespace: crop to content
+  const dataURL = trimSigCanvas(c);
+  localStorage.setItem(SIG_KEY, dataURL);
+
+  // Update modal to show saved state
+  document.getElementById('sig-saved-preview').src = dataURL;
+  document.getElementById('sig-saved-area').style.display = 'block';
+  document.getElementById('sig-new-area').style.display = 'none';
+  document.getElementById('sig-modal-sub').textContent = 'Votre signature est mémorisée et sera apposée automatiquement sur tous vos rapports.';
+
+  // Refresh the preview if already on preview screen
+  if (document.getElementById('screen-preview').classList.contains('active')) {
+    buildPreview();
+  }
+  // Update button appearance
+  updateSigBtn();
+  toast('✅ Signature mémorisée avec succès');
+}
+
+function trimSigCanvas(canvas) {
+  // Find bounding box of drawn content and crop
+  const ctx = canvas.getContext('2d');
+  const { width, height } = canvas;
+  const data = ctx.getImageData(0, 0, width, height);
+  let minX = width, minY = height, maxX = 0, maxY = 0;
+  for (let y = 0; y < height; y++) {
+    for (let x = 0; x < width; x++) {
+      const alpha = data.data[(y * width + x) * 4 + 3];
+      if (alpha > 10) {
+        if (x < minX) minX = x;
+        if (x > maxX) maxX = x;
+        if (y < minY) minY = y;
+        if (y > maxY) maxY = y;
+      }
+    }
+  }
+  // Add padding
+  const pad = 8;
+  minX = Math.max(0, minX - pad);
+  minY = Math.max(0, minY - pad);
+  maxX = Math.min(width, maxX + pad);
+  maxY = Math.min(height, maxY + pad);
+  const w = maxX - minX;
+  const h = maxY - minY;
+  if (w <= 0 || h <= 0) return canvas.toDataURL('image/png');
+  const tmp = document.createElement('canvas');
+  tmp.width = w; tmp.height = h;
+  tmp.getContext('2d').drawImage(canvas, minX, minY, w, h, 0, 0, w, h);
+  return tmp.toDataURL('image/png');
+}
+
+function updateSigBtn() {
+  const btn = document.getElementById('btn-sig');
+  if (!btn) return;
+  if (getSavedSig()) {
+    btn.style.background = 'var(--green)';
+    btn.textContent = '✅ Signé';
+  } else {
+    btn.style.background = 'var(--ink3)';
+    btn.textContent = '✍️ Signer';
+  }
+}
+
+// Close modal on overlay click
+document.getElementById('sig-modal-overlay').addEventListener('click', function(e) {
+  if (e.target === this) closeSigModal();
+});
+
+// ==================== NARRATIVE DISPATCHER ====================
+function getNarrative(type) {
+  if (LANG === 'en') return NARRATIVE_EN[type](S.findings, S.probe);
+  return NARRATIVE[type](S.findings, S.probe);
+}
+
+// ==================== ENGLISH NARRATIVE ENGINE ====================
+window.NARRATIVE_EN = {
+
+gyn(f, probe) {
+  const get = k => Array.isArray(f[k]) ? f[k].filter(Boolean).join(', ') : (f[k] || '');
+  const has = k => !!get(k);
+  const mm  = (...keys) => keys.map(k => get(k) || '—').join(' × ') + ' mm';
+  let sections = [];
+
+  // Intro
+  let intro = `The pelvic ultrasound examination was performed via the ${probeNarrative(probe)} route using the Vinno machine under satisfactory technical conditions. `;
+  if (has('cycle_j')) intro += `The examination was carried out on day ${get('cycle_j')} of the menstrual cycle. `;
+  if (has('statut_hormonal')) intro += `The patient is ${get('statut_hormonal')}. `;
+  sections.push({ title: null, text: intro });
+
+  // Uterus
+  let ut = '';
+  if (has('uterus_position') || has('uterus_L')) {
+    ut += `The uterus is ${get('uterus_position') || 'in normal position'}`;
+    if (has('uterus_forme')) ut += `, ${get('uterus_forme')} in shape`;
+    if (has('uterus_contours')) ut += `, with ${get('uterus_contours')} margins`;
+    ut += '. ';
+    if (has('uterus_L') || has('uterus_AP') || has('uterus_T')) {
+      ut += `It measures ${mm('uterus_L','uterus_AP','uterus_T')} (length × anteroposterior diameter × width)`;
+      if (has('uterus_vol')) ut += `, with an estimated volume of ${get('uterus_vol')} cm³`;
+      ut += '. ';
+    }
+    if (has('myometre_aspect')) ut += `The myometrium shows a ${get('myometre_aspect')} echotexture. `;
+    if (has('myometre_pathologie') && get('myometre_pathologie') !== 'sans anomalie') ut += `There is evidence of ${get('myometre_pathologie')}. `;
+    if (has('fibrome_nb')) {
+      ut += `${get('fibrome_nb')} fibroid(s) are identified`;
+      if (has('fibrome_sieg')) ut += ` of ${get('fibrome_sieg')} location`;
+      if (has('fibrome_L'))    ut += `, measuring ${mm('fibrome_L','fibrome_AP','fibrome_T')}`;
+      if (has('fibrome_echo')) ut += `, ${get('fibrome_echo')} in echotexture`;
+      ut += '. ';
+    }
+    if (has('adenomyose_type')) ut += `The ultrasound findings are suggestive of ${get('adenomyose_type')} adenomyosis. `;
+    if (has('uterus_comments')) ut += get('uterus_comments') + ' ';
+  }
+  if (ut) sections.push({ title: 'UTERUS', text: ut });
+
+  // Endometrium
+  let endo = '';
+  if (has('endo_ep') || has('endo_aspect')) {
+    if (has('endo_ep')) {
+      endo += `The endometrium measures ${get('endo_ep')} mm in thickness`;
+      if (has('endo_phase')) endo += ` (${get('endo_phase')} phase)`;
+      endo += '. ';
+    }
+    if (has('endo_aspect')) endo += `Its appearance is ${get('endo_aspect')}. `;
+    if (has('endo_zone_jonct')) endo += `The junctional zone is ${get('endo_zone_jonct')}. `;
+    if (has('cavite_etat')) endo += `The uterine cavity is ${get('cavite_etat')}. `;
+    if (has('diu_position')) endo += `The IUD is ${get('diu_position')}. `;
+    if (has('endo_ep')) {
+      const ep = parseFloat(get('endo_ep'));
+      if (has('statut_hormonal') && get('statut_hormonal').includes('ménopaus')) {
+        if (ep > 4) endo += `⚠️ Endometrial thickness exceeds the 4 mm threshold in post-menopausal women and warrants further investigation. `;
+        else endo += `Endometrial thickness is within normal limits for a post-menopausal woman (≤ 4 mm). `;
+      }
+    }
+    if (has('endo_comments')) endo += get('endo_comments') + ' ';
+  }
+  if (endo) sections.push({ title: 'ENDOMETRIUM', text: endo });
+
+  // Ovaries
+  ['od','og'].forEach(pre => {
+    const side = pre === 'od' ? 'right' : 'left';
+    const txt = buildOvaryNarrativeEN(f, pre, side, has, get, mm);
+    if (txt) sections.push({ title: `${side.toUpperCase()} OVARY`, text: txt });
+  });
+
+  // Douglas / Tubes
+  let doug = '';
+  if (has('douglas_etat')) {
+    doug += `The pouch of Douglas is ${get('douglas_etat')}. `;
+    if (has('douglas_ep_liquide')) doug += `The effusion is estimated at ${get('douglas_ep_liquide')} mm in height. `;
+  }
+  if (has('trompes_aspect')) {
+    doug += `The fallopian tubes are ${get('trompes_aspect')}. `;
+    if (has('hydrosalpinx_cote')) {
+      doug += `A ${get('hydrosalpinx_cote')}-sided hydrosalpinx is identified`;
+      if (has('hydrosalpinx_taille')) doug += ` measuring ${get('hydrosalpinx_taille')} mm`;
+      doug += '. ';
+    }
+  }
+  if (has('douglas_comments')) doug += get('douglas_comments') + ' ';
+  if (doug) sections.push({ title: 'POUCH OF DOUGLAS / FALLOPIAN TUBES', text: doug });
+
+  // Cervix
+  let col = '';
+  if (has('col_long') || has('col_aspect')) {
+    if (has('col_long')) col += `The cervix measures ${get('col_long')} mm in length. `;
+    if (has('col_aspect')) col += `Its appearance is ${get('col_aspect')}. `;
+    if (has('col_kyste_naboth')) col += `Nabothian cyst(s) are noted: ${get('col_kyste_naboth')}. `;
+    if (has('col_comments')) col += get('col_comments') + ' ';
+  }
+  if (col) sections.push({ title: 'CERVIX', text: col });
+
+  return sections;
+},
+
+obs(f, probe) {
+  const get = k => Array.isArray(f[k]) ? f[k].filter(Boolean).join(', ') : (f[k] || '');
+  const has = k => !!get(k);
+  const mm  = (...keys) => keys.map(k => get(k) || '—').join(' / ');
+  let sections = [];
+
+  // Intro
+  let intro = `The obstetrical ultrasound was performed via the ${probeNarrative(probe)} route using the Vinno machine. `;
+  if (has('grossesse_type')) intro += `This is a ${get('grossesse_type')} pregnancy. `;
+  if (has('terme_clinique_sa')) {
+    intro += `The clinical gestational age is ${get('terme_clinique_sa')} weeks`;
+    if (has('terme_clinique_j')) intro += ` and ${get('terme_clinique_j')} days`;
+    intro += ' of amenorrhoea. ';
+  }
+  sections.push({ title: null, text: intro });
+
+  // Fetal viability
+  let vital = '';
+  if (has('vitalite_bcf')) {
+    vital += `Fetal viability is ${get('vitalite_bcf') === 'présents' ? 'confirmed with fetal heart tones present' : 'not confirmed — fetal heart tones are absent'}. `;
+    if (has('fc_foetale')) vital += `The fetal heart rate is ${get('fc_foetale')} bpm (normal: 120–160 bpm). `;
+    if (has('mvts_actifs')) vital += `Fetal movements are ${get('mvts_actifs')}. `;
+    if (has('tonus_foetal')) vital += `Fetal tone is ${get('tonus_foetal')}. `;
+  }
+  if (vital) sections.push({ title: 'FETAL VIABILITY', text: vital });
+
+  // Biometry
+  let bio = '';
+  const bioMap = [['LCC','crown-rump length'],['CN','nuchal translucency'],['BIP','biparietal diameter'],['DOF','occipito-frontal diameter'],['CC','head circumference'],['CA','abdominal circumference'],['LF','femur length'],['LH','humerus length']];
+  const hasBio = bioMap.some(([k]) => has(k));
+  if (hasBio) {
+    bio += 'Fetal biometry: ';
+    bio += bioMap.filter(([k]) => has(k)).map(([k, lbl]) => {
+      let s = `${lbl} (${k}) = ${get(k)} mm`;
+      if (has(k+'_sa')) s += ` (equivalent to ${get(k+'_sa')} weeks)`;
+      if (has(k+'_pc')) s += ` [${get(k+'_pc')}th percentile]`;
+      return s;
+    }).join('; ') + '. ';
+    if (has('pfe')) {
+      bio += `The estimated fetal weight (EFW) by Hadlock formula is ${get('pfe')} grams`;
+      if (has('pfe_pc')) bio += ` [${get('pfe_pc')}th percentile]`;
+      bio += '. ';
+    }
+    if (has('terme_echo_sa')) {
+      bio += `The mean ultrasound gestational age is ${get('terme_echo_sa')} weeks`;
+      if (has('terme_echo_j')) bio += ` and ${get('terme_echo_j')} days`;
+      bio += '. ';
+    }
+    if (has('concordance_biometrie')) bio += `Biometric concordance is ${get('concordance_biometrie')}. `;
+    if (has('croissance_profil')) bio += `The growth profile is ${get('croissance_profil')}. `;
+  }
+  if (bio) sections.push({ title: 'FETAL BIOMETRY', text: bio });
+
+  // CNS
+  let cns = '';
+  const cnsFields = [['crane_peau','Cranial skin covering'],['crane_os','Cranial vault'],['crane_forme','Skull shape'],['faux_cerveau','Cerebral falx'],['ventricules_lat','Lateral ventricles'],['vent_lat_mes','Lateral ventricle measurement (mm)'],['cavum_septum','Cavum septum pellucidum'],['plexus_choroides','Choroid plexuses'],['cerebellum','Cerebellum'],['diam_cerebellum','Transcerebellar diameter (mm)'],['citerne_magna','Cisterna magna'],['diam_cm','Cisterna magna measurement (mm)'],['corps_calleux','Corpus callosum']];
+  cnsFields.forEach(([k,l]) => { if (has(k)) cns += `${l}: ${get(k)}. `; });
+  if (cns) sections.push({ title: 'SKULL / CENTRAL NERVOUS SYSTEM', text: cns });
+
+  // Face
+  let face = '';
+  [['orbites','Orbits'],['os_nasal','Nasal bone'],['os_nasal_mes','Nasal bone measurement (mm)'],['levres','Lips'],['palais','Palate'],['profil_face','Facial profile']].forEach(([k,l]) => { if (has(k)) face += `${l}: ${get(k)}. `; });
+  if (face) sections.push({ title: 'FACE', text: face });
+
+  // Thorax / Heart
+  let thorax = '';
+  if (has('thorax_forme')) thorax += `The thorax is ${get('thorax_forme')} in shape. `;
+  if (has('coeur_position')) thorax += `The heart is in ${get('coeur_position')} position. `;
+  if (has('situs')) thorax += `Situs is ${get('situs')}. `;
+  if (has('axe_coeur')) thorax += `Cardiac axis is ${get('axe_coeur')}°. `;
+  if (has('4_cavites')) thorax += `The four-chamber view is ${get('4_cavites')}. `;
+  if (has('septum_IV')) thorax += `Interventricular septum: ${get('septum_IV')}. `;
+  if (has('voies_efferentes')) thorax += `Outflow tracts (aorta and pulmonary artery) are ${get('voies_efferentes')}. `;
+  if (has('coeur_comments')) thorax += get('coeur_comments') + ' ';
+  if (thorax) sections.push({ title: 'THORAX / HEART', text: thorax });
+
+  // Abdomen
+  let abdo = '';
+  if (has('paroi_abdominale')) abdo += `The abdominal wall at the umbilical cord insertion is ${get('paroi_abdominale')}. `;
+  if (has('estomac')) abdo += `The stomach is ${get('estomac')}. `;
+  if (has('reins_d') || has('reins_g')) abdo += `The kidneys are ${has('reins_d') ? get('reins_d') + ' on the right' : ''} ${has('reins_g') ? 'and ' + get('reins_g') + ' on the left' : ''}. `;
+  if (has('bassinet_d')) abdo += `Right renal pelvis: ${get('bassinet_d')} mm. `;
+  if (has('bassinet_g')) abdo += `Left renal pelvis: ${get('bassinet_g')} mm. `;
+  if (has('vessie')) abdo += `The bladder is ${get('vessie')}. `;
+  if (has('cordon_ombilical')) abdo += `The umbilical cord shows ${get('cordon_ombilical')}. `;
+  if (has('sexe_foetal')) abdo += `Apparent fetal sex: ${get('sexe_foetal')}. `;
+  if (has('abdomen_comments')) abdo += get('abdomen_comments') + ' ';
+  if (abdo) sections.push({ title: 'ABDOMEN / ORGANS', text: abdo });
+
+  // Skeleton
+  let skel = '';
+  if (has('membres_sup')) skel += `The upper limbs are ${get('membres_sup')} (arms, forearms, hands visualised). `;
+  if (has('membres_inf')) skel += `The lower limbs are ${get('membres_inf')} (thighs, legs, feet visualised). `;
+  if (has('colonne_vert')) skel += `The spine is ${get('colonne_vert')}. `;
+  if (has('rachis_comments')) skel += get('rachis_comments') + ' ';
+  if (skel) sections.push({ title: 'SKELETON / LIMBS', text: skel });
+
+  // Placenta / Amniotic fluid
+  let plac = '';
+  if (has('placenta_loc')) {
+    plac += `The placenta is located in ${get('placenta_loc')} position`;
+    if (has('placenta_grade')) plac += `, Grannum maturity grade ${get('placenta_grade')}`;
+    if (has('placenta_ep')) plac += `, measuring ${get('placenta_ep')} mm in thickness`;
+    plac += '. ';
+    if (has('placenta_dist_orifice')) plac += `It is ${get('placenta_dist_orifice')} mm from the internal cervical os. `;
+    if (has('placenta_aspect')) plac += `Placental appearance: ${get('placenta_aspect')}. `;
+    if (has('placenta_insert_cordon')) plac += `Cord insertion: ${get('placenta_insert_cordon')}. `;
+  }
+  if (has('LA_aspect')) {
+    plac += `Amniotic fluid is ${get('LA_aspect')}. `;
+    if (has('ILA')) plac += `Amniotic fluid index (AFI): ${get('ILA')} mm`;
+    if (has('grande_citerne')) plac += `; deepest vertical pocket: ${get('grande_citerne')} mm`;
+    plac += '. ';
+  }
+  if (plac) sections.push({ title: 'PLACENTA / AMNIOTIC FLUID', text: plac });
+
+  // Doppler
+  let dopp = '';
+  if (has('doppler_realise')) {
+    dopp += `Doppler study performed on: ${get('doppler_realise')}. `;
+    if (has('ip_omb')) {
+      dopp += `Umbilical artery pulsatility index (PI): ${get('ip_omb')}`;
+      if (has('ip_omb_pc')) dopp += ` [${get('ip_omb_pc')}th percentile]`;
+      if (has('diastole_omb')) dopp += `; end-diastolic flow is ${get('diastole_omb')}`;
+      dopp += '. ';
+    }
+    if (has('ip_acm')) {
+      dopp += `Middle cerebral artery (MCA) PI: ${get('ip_acm')}`;
+      if (has('vpic_acm')) dopp += `; peak systolic velocity (PSV-MCA): ${get('vpic_acm')} cm/s`;
+      dopp += '. ';
+    }
+    if (has('ip_ut_d') || has('ip_ut_g')) {
+      dopp += `Uterine arteries: `;
+      if (has('ip_ut_d')) dopp += `right PI = ${get('ip_ut_d')} `;
+      if (has('ip_ut_g')) dopp += `left PI = ${get('ip_ut_g')} `;
+      if (has('notch_ut')) dopp += `; ${get('notch_ut')}`;
+      dopp += '. ';
+    }
+    if (has('ductus_venosus')) dopp += `Ductus venosus: ${get('ductus_venosus')} waveform. `;
+    if (has('ratio_cpc')) dopp += `Cerebroplacental ratio (CPR): ${get('ratio_cpc')}. `;
+    if (has('doppler_interp')) dopp += `Overall Doppler assessment: ${get('doppler_interp')}. `;
+  }
+  if (dopp) sections.push({ title: 'FETO-MATERNAL DOPPLER', text: dopp });
+
+  // Cervix
+  let colObs = '';
+  if (has('col_obs_long')) {
+    colObs += `The cervical length measured by transvaginal route is ${get('col_obs_long')} mm. `;
+    if (parseFloat(get('col_obs_long')) < 25) colObs += `⚠️ Cervical length below the 25 mm threshold, consistent with a short cervix. `;
+    if (has('col_obs_aspect')) colObs += `Cervical appearance: ${get('col_obs_aspect')}. `;
+    if (has('col_obs_funnel')) colObs += `Funnelling: ${get('col_obs_funnel')}. `;
+    if (has('cerclage')) colObs += `Cervical cerclage: ${get('cerclage')}. `;
+  }
+  if (colObs) sections.push({ title: 'CERVIX', text: colObs });
+
+  return sections;
+},
+
+sein(f, probe) {
+  const get = k => Array.isArray(f[k]) ? f[k].filter(Boolean).join(', ') : (f[k] || '');
+  const has = k => !!get(k);
+  const mm  = (...keys) => keys.map(k => get(k) || '—').join(' × ');
+  let sections = [];
+
+  let intro = `Breast ultrasound was performed using a ${probeNarrative(probe)} high-frequency transducer on the Vinno machine, with comparative examination of both breasts and axillary regions. `;
+  sections.push({ title: null, text: intro });
+
+  ['D','G'].forEach(side => {
+    const p = 'sein' + side;
+    const sideLabel = side === 'D' ? 'right' : 'left';
+    let txt = '';
+    if (has(`${p}_tissu`)) txt += `The ${sideLabel} breast shows a ${get(`${p}_tissu`)} parenchymal pattern (ACR density). `;
+    if (has(`${p}_aspect_global`)) txt += `Overall tissue appearance is ${get(`${p}_aspect_global`)}. `;
+    if (has(`${p}_lesion_presente`)) {
+      if (get(`${p}_lesion_presente`).includes('non') || get(`${p}_lesion_presente`).includes('No')) {
+        txt += `No focal lesion is identified in the ${sideLabel} breast. `;
+      } else {
+        txt += `A focal lesion is identified in the ${sideLabel} breast `;
+        if (has(`${p}_type_lesion`)) txt += `of ${get(`${p}_type_lesion`)} type `;
+        if (has(`${p}_quad`)) txt += `in the ${get(`${p}_quad`)} quadrant `;
+        if (has(`${p}_position_h`)) txt += `at ${get(`${p}_position_h`)} o'clock `;
+        if (has(`${p}_dist_mamelon`)) txt += `${get(`${p}_dist_mamelon`)} mm from the nipple `;
+        txt += '. ';
+        if (has(`${p}_taille_1`)) txt += `Dimensions: ${mm(`${p}_taille_1`,`${p}_taille_2`,`${p}_taille_3`)} mm. `;
+        if (has(`${p}_forme`)) txt += `Shape: ${get(`${p}_forme`)}. `;
+        if (has(`${p}_orientation`)) txt += `Orientation: ${get(`${p}_orientation`)}. `;
+        if (has(`${p}_margins`)) txt += `Margins: ${get(`${p}_margins`)}. `;
+        if (has(`${p}_echo_pattern`)) txt += `Echotexture: ${get(`${p}_echo_pattern`)}. `;
+        if (has(`${p}_posterior`)) txt += `Posterior features: ${get(`${p}_posterior`)}. `;
+        if (has(`${p}_calcifications`)) txt += `Calcifications: ${get(`${p}_calcifications`)}. `;
+        if (has(`${p}_vascularite`)) txt += `Doppler colour flow: ${get(`${p}_vascularite`)}. `;
+        if (has(`${p}_elastographie`)) txt += `Elastography: ${get(`${p}_elastographie`)}. `;
+        if (has(`${p}_peau`)) txt += `Overlying skin: ${get(`${p}_peau`)}. `;
+      }
+      if (has(`${p}_birads`)) txt += `ACR-BIRADS classification: ${get(`${p}_birads`)}. `;
+    }
+    if (has(`${p}_comments`)) txt += get(`${p}_comments`) + ' ';
+    if (txt) sections.push({ title: `${sideLabel.toUpperCase()} BREAST`, text: txt });
+  });
+
+  // Nipple / Retroareolar
+  let mam = '';
+  if (has('mamelon_d_aspect')) mam += `Right nipple: ${get('mamelon_d_aspect')}. `;
+  if (has('mamelon_g_aspect')) mam += `Left nipple: ${get('mamelon_g_aspect')}. `;
+  if (has('retroareolaire_d')) mam += `Right retroareolar region: ${get('retroareolaire_d')}. `;
+  if (has('retroareolaire_g')) mam += `Left retroareolar region: ${get('retroareolaire_g')}. `;
+  if (has('canaux_galactophores')) mam += `Lactiferous ducts: ${get('canaux_galactophores')}. `;
+  if (mam) sections.push({ title: 'NIPPLE / RETROAREOLAR REGION', text: mam });
+
+  // Axillary
+  let ax = '';
+  ['D','G'].forEach(s => {
+    const S2 = s === 'D' ? 'right' : 'left';
+    if (has(`ax_${s}_aspect`)) {
+      ax += `${S2.charAt(0).toUpperCase()+S2.slice(1)} axillary region: ${get(`ax_${s}_aspect`)}. `;
+      if (get(`ax_${s}_aspect`).includes('adénopathie') || get(`ax_${s}_aspect`).includes('lymph')) {
+        if (has(`ax_${s}_nb`)) ax += `${get(`ax_${s}_nb`)} lymph node(s) identified `;
+        if (has(`ax_${s}_taille`)) ax += `up to ${get(`ax_${s}_taille`)} mm `;
+        if (has(`ax_${s}_hile`)) ax += `— fatty hilum ${get(`ax_${s}_hile`)} `;
+        if (has(`ax_${s}_cortex`)) ax += `— cortex ${get(`ax_${s}_cortex`)}`;
+        ax += '. ';
+      }
+    }
+  });
+  if (ax) sections.push({ title: 'AXILLARY REGIONS', text: ax });
+
+  // BIRADS
+  let bir = '';
+  if (has('birads_d') || has('birads_g')) {
+    if (has('birads_d')) bir += `Right breast: ACR-BIRADS ${get('birads_d')}`;
+    if (has('birads_d') && has('birads_g')) bir += '; ';
+    if (has('birads_g')) bir += `left breast: ACR-BIRADS ${get('birads_g')}`;
+    bir += '. ';
+    const maxB = Math.max(parseInt(get('birads_d')||0), parseInt(get('birads_g')||0));
+    const biradsEN = {
+      0:'Incomplete assessment — additional imaging required (mammography, MRI).',
+      1:'Negative — no abnormality. Routine screening.',
+      2:'Benign finding — return to routine screening.',
+      3:'Probably benign — malignancy risk < 2%. Short-interval follow-up at 6 months recommended.',
+      4:'Suspicious — malignancy risk 2–95%. Histological verification recommended (biopsy).',
+      5:'Highly suggestive of malignancy — risk > 95%. Surgical management after biopsy.',
+      6:'Known biopsy-proven malignancy — therapeutic management in progress.'
+    };
+    bir += biradsEN[maxB] || '';
+  }
+  if (bir) sections.push({ title: 'ACR-BIRADS CLASSIFICATION', text: bir });
+
+  return sections;
+}
+
+}; // end NARRATIVE_EN
+
+function buildOvaryNarrativeEN(f, pre, side, has, get, mm) {
+  let text = '';
+  if (!has(`${pre}_vis`)) return text;
+  if (get(`${pre}_vis`) === 'non visualisé') return `The ${side} ovary is not identified under standard examination conditions. `;
+  text += `The ${side} ovary is visualised`;
+  if (has(`${pre}_L`) || has(`${pre}_AP`) || has(`${pre}_T`)) text += `, measuring ${mm(`${pre}_L`,`${pre}_AP`,`${pre}_T`)} mm`;
+  if (has(`${pre}_vol`)) text += ` (volume ${get(`${pre}_vol`)} cm³)`;
+  text += '. ';
+  if (has(`${pre}_echostructure`)) text += `Echotexture: ${get(`${pre}_echostructure`)}. `;
+  if (has(`${pre}_fac`)) {
+    const fac = parseInt(get(`${pre}_fac`));
+    text += `Antral follicle count (AFC): ${fac} follicle(s)`;
+    if (fac >= 12) text += ` (consistent with adequate ovarian reserve)`;
+    else if (fac <= 5) text += ` (low AFC — to be correlated with hormonal data)`;
+    text += '. ';
+  }
+  if (has(`${pre}_foll_dominant`)) text += `Dominant follicle: ${get(`${pre}_foll_dominant`)} mm. `;
+  if (has(`${pre}_corps_jaune`)) text += `${get(`${pre}_corps_jaune`)} corpus luteum visualised. `;
+  if (has(`${pre}_kyste_type`) && get(`${pre}_kyste_type`) !== 'aucune') {
+    text += `A cystic formation of ${get(`${pre}_kyste_type`)} type is identified`;
+    if (has(`${pre}_kyste_taille`)) text += ` measuring ${get(`${pre}_kyste_taille`)} mm`;
+    if (has(`${pre}_kyste_paroi`)) text += `, with ${get(`${pre}_kyste_paroi`)} wall`;
+    if (has(`${pre}_kyste_cloisons`)) text += `, ${get(`${pre}_kyste_cloisons`)}`;
+    if (has(`${pre}_kyste_contenu`)) text += `, ${get(`${pre}_kyste_contenu`)} content`;
+    if (has(`${pre}_kyste_vasc`)) text += `, with ${get(`${pre}_kyste_vasc`)} Doppler vascularity`;
+    text += '. ';
+  }
+  if (has(`${pre}_sopk`)) text += `Ovarian appearance: ${get(`${pre}_sopk`)}. `;
+  if (has(`${pre}_comments`)) text += get(`${pre}_comments`) + ' ';
+  return text;
+}
+
+// ==================== LANGUAGE ====================
+let LANG = localStorage.getItem('echoLang') || 'fr';
+
+const TRANS = {
+  fr: {
+    // Home
+    heroEyebrow: 'Rapport Échographique',
+    newExam: 'Nouvel examen',
+    recentReports: 'Rapports récents',
+    noReports: 'Aucun rapport enregistré',
+    clearAll: 'Effacer tout',
+    // Exam cards
+    gynTitle:'Pelvienne', gynDesc:'Utérus, ovaires, endomètre, col',
+    obsTitle:'Obstétricale', obsDesc:'Grossesse, biométrie, morphologie',
+    seinTitle:'Sénologique', seinDesc:'Sein, BIRADS, axillaires',
+    // Exam labels
+    gynLabel:'Échographie Pelvienne Gynécologique',
+    obsLabel:'Échographie Obstétricale',
+    seinLabel:'Échographie Sénologique',
+    // Report meta labels
+    patiente:'Patiente', dateExamen:"Date de l'examen",
+    sonde:'Sonde', referent:'Médecin référent', indication:'Indication',
+    dob:'Née le',
+    // Report sections
+    imagesTitle:'Images Échographiques',
+    conclusionTitle:'Conclusion', conclusionLabel:'Conclusion :',
+    recommendationsTitle:'Recommandations',
+    footerLine:'EchoReport · Dr. Johnny Barakat',
+    sigSub:'Gynécologue · Oncologue · Échographiste',
+    logoSub:'Échographie numérique',
+    specLine:'Gynécologie · Infertilité · Onco-Gynécologie<br>Échographie Gynécologique &amp; Sénologique',
+    specPDF:'Gynécologie · Infertilité · Onco-Gynécologie · Échographie Gynécologique & Sénologique',
+    // PDF meta
+    pdfPatiente:'PATIENTE', pdfDate:'DATE EXAMEN', pdfSonde:'SONDE',
+    pdfRef:'RÉFÉRENT', pdfInd:'INDICATION',
+    pdfBorn:'Née', pdfConclusion:'CONCLUSION', pdfReco:'RECOMMANDATIONS :',
+    // Probe labels
+    probeLabelMap:{'vaginale':'Sonde endovaginale 2D','abdominale-2d':'Abdominale convexe 2D','abdominale-3d':'Abdominale volumique 3D','lineaire':'Linéaire haute fréquence'},
+    // Probe narrative
+    probeNarrativeMap:{'vaginale':'endovaginale (sonde endocavitaire)','abdominale-2d':'sus-pubienne (sonde convexe 2D)','abdominale-3d':'sus-pubienne volumique (sonde 3D)','lineaire':'linéaire haute fréquence'},
+    // Action buttons
+    btnModifier:'✏️ Modifier', btnPDF:'💾 PDF', btnPrint:'🖨️ Imprimer', btnSharp:'📲 SharpDesk', btnSign:'✍️ Signer', btnSigned:'✅ Signé',
+    // Date locale
+    dateLocale:'fr-FR',
+    dateOptions:{weekday:'long',year:'numeric',month:'long',day:'numeric'},
+    // Vinno machine
+    machineVinno:'Machine Vinno',
+  },
+  en: {
+    heroEyebrow: 'Ultrasound Report',
+    newExam: 'New examination',
+    recentReports: 'Recent reports',
+    noReports: 'No saved reports',
+    clearAll: 'Clear all',
+    gynTitle:'Pelvic', gynDesc:'Uterus, ovaries, endometrium, cervix',
+    obsTitle:'Obstetrical', obsDesc:'Pregnancy, biometry, morphology',
+    seinTitle:'Breast', seinDesc:'Breast, BIRADS, axillary',
+    gynLabel:'Gynecological Pelvic Ultrasound',
+    obsLabel:'Obstetrical Ultrasound',
+    seinLabel:'Breast Ultrasound',
+    patiente:'Patient', dateExamen:'Examination date',
+    sonde:'Probe', referent:'Referring physician', indication:'Indication',
+    dob:'DOB',
+    imagesTitle:'Ultrasound Images',
+    conclusionTitle:'Conclusion', conclusionLabel:'Conclusion:',
+    recommendationsTitle:'Recommendations',
+    footerLine:'EchoReport · Dr. Johnny Barakat',
+    sigSub:'Gynaecologist · Oncologist · Ultrasonographer',
+    logoSub:'Digital ultrasound',
+    specLine:'Gynaecology · Infertility · Onco-Gynaecology<br>Gynaecological &amp; Senological Ultrasound',
+    specPDF:'Gynaecology · Infertility · Onco-Gynaecology · Gynaecological & Senological Ultrasound',
+    pdfPatiente:'PATIENT', pdfDate:'EXAM DATE', pdfSonde:'PROBE',
+    pdfRef:'PHYSICIAN', pdfInd:'INDICATION',
+    pdfBorn:'DOB', pdfConclusion:'CONCLUSION', pdfReco:'RECOMMENDATIONS:',
+    probeLabelMap:{'vaginale':'Endovaginal probe 2D','abdominale-2d':'Abdominal convex 2D','abdominale-3d':'Abdominal volumetric 3D','lineaire':'High-frequency linear'},
+    probeNarrativeMap:{'vaginale':'endovaginal (endocavitary probe)','abdominale-2d':'transabdominal (convex 2D probe)','abdominale-3d':'transabdominal volumetric (3D probe)','lineaire':'high-frequency linear'},
+    btnModifier:'✏️ Edit', btnPDF:'💾 PDF', btnPrint:'🖨️ Print', btnSharp:'📲 SharpDesk', btnSign:'✍️ Sign', btnSigned:'✅ Signed',
+    dateLocale:'en-GB',
+    dateOptions:{weekday:'long',year:'numeric',month:'long',day:'numeric'},
+    machineVinno:'Vinno machine',
+  }
+};
+
+function T(key) { return (TRANS[LANG] || TRANS['fr'])[key] || key; }
+
+function setLang(lang) {
+  LANG = lang;
+  localStorage.setItem('echoLang', lang);
+  // Update selector buttons
+  document.getElementById('lang-fr').classList.toggle('active', lang === 'fr');
+  document.getElementById('lang-en').classList.toggle('active', lang === 'en');
+  // Update home screen text
+  document.getElementById('hero-eyebrow').textContent = T('heroEyebrow');
+  applyLangToHome();
+}
+
+function applyLangToHome() {
+  // Exam cards
+  const cards = document.querySelectorAll('.exam-card');
+  if (cards.length >= 3) {
+    cards[0].querySelector('.exam-card-title').textContent = T('gynTitle');
+    cards[0].querySelector('.exam-card-desc').textContent  = T('gynDesc');
+    cards[1].querySelector('.exam-card-title').textContent = T('obsTitle');
+    cards[1].querySelector('.exam-card-desc').textContent  = T('obsDesc');
+    cards[2].querySelector('.exam-card-title').textContent = T('seinTitle');
+    cards[2].querySelector('.exam-card-desc').textContent  = T('seinDesc');
+  }
+  // Section headings
+  const secTitles = document.querySelectorAll('.home-section-title');
+  if (secTitles.length >= 1) secTitles[0].textContent = T('newExam');
+  if (secTitles.length >= 2) secTitles[1].textContent = T('recentReports');
+  // Empty message
+  const emptyMsg = document.getElementById('empty-msg');
+  if (emptyMsg) emptyMsg.textContent = T('noReports');
+  // Clear all button
+  const clearBtn = document.getElementById('btn-clear-all');
+  if (clearBtn) clearBtn.textContent = '🗑 ' + T('clearAll');
+}
+
+// Language-aware probe label
+function probeLabelL(p) {
+  return T('probeLabelMap')[p] || p || '—';
+}
+
+// ==================== INIT ====================
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('./sw.js').catch(()=>{});
+}
+document.getElementById('exam-date').valueAsDate = new Date();
+loadReports();
+renderHome();
+// Apply saved language on startup
+setLang(LANG);
+// Update signature button state on load
+setTimeout(updateSigBtn, 100);
+</script>
+</body>
+</html>
