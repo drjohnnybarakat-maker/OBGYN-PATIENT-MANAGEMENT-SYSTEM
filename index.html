@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="OBGYN System">
+<meta name="theme-color" content="#101826">
+<title>OBGYN Patient Management System</title>
+<style>
+:root{--bg:#101826;--card:#182338;--line:rgba(255,255,255,.1);--text:#eef2f8;--mute:#8b99b0;--gold:#d2ad72;--bar:56px}
+:root:not([data-theme="dark"]){color-scheme:dark}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;background:var(--bg);color:var(--text);font-family:Georgia,"Times New Roman",serif}
+body{padding-top:env(safe-area-inset-top,0px)}
+#home{height:100%;overflow-y:auto;padding:28px 20px calc(28px + env(safe-area-inset-bottom,0px));max-width:920px;margin:0 auto}
+h1{font-size:clamp(26px,5vw,38px);font-weight:400;letter-spacing:.01em}
+h1 em{color:var(--gold)}
+.sub{color:var(--mute);font-family:-apple-system,"Segoe UI",sans-serif;font-size:13px;margin:6px 0 26px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:14px}
+.tile{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:20px;text-align:left;color:inherit;cursor:pointer;font:inherit;display:block;width:100%}
+.tile:active{transform:scale(.98)}
+.tile .ic{font-size:30px;display:block;margin-bottom:10px}
+.tile b{display:block;font-size:19px;font-weight:400;margin-bottom:4px}
+.tile span.d{font-family:-apple-system,"Segoe UI",sans-serif;font-size:12px;color:var(--mute);line-height:1.5}
+.tile.off{opacity:.45}
+.tile .tag{display:inline-block;margin-top:8px;font-family:-apple-system,sans-serif;font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--gold)}
+.tools{margin-top:30px;border-top:1px solid var(--line);padding-top:20px;font-family:-apple-system,"Segoe UI",sans-serif}
+.tools h2{font-family:Georgia,serif;font-size:18px;font-weight:400;margin-bottom:6px}
+.tools p{font-size:12px;color:var(--mute);line-height:1.6;margin-bottom:12px;max-width:560px}
+.btn{background:transparent;border:1px solid var(--gold);color:var(--gold);border-radius:10px;padding:10px 16px;font:inherit;font-size:13px;cursor:pointer;margin-right:8px;margin-bottom:8px}
+#msg{font-size:12px;color:var(--mute);min-height:18px}
+#viewer{position:fixed;inset:0;padding-top:env(safe-area-inset-top,0px);background:var(--bg);display:none;flex-direction:column}
+#viewer.on{display:flex}
+#bar{height:var(--bar);flex:0 0 var(--bar);display:flex;align-items:center;gap:12px;padding:0 14px;border-bottom:1px solid var(--line);font-family:-apple-system,"Segoe UI",sans-serif}
+#bar button{background:var(--card);border:1px solid var(--line);color:var(--text);border-radius:10px;padding:8px 14px;font:inherit;font-size:14px;cursor:pointer}
+#bar span{font-size:15px;color:var(--gold)}
+#frames{flex:1;position:relative;min-height:0}
+#frames iframe{position:absolute;inset:0;width:100%;height:100%;border:0;background:#fff;display:none}
+#frames iframe.on{display:block}
+</style>
+</head>
+<body>
+
+<div id="home">
+  <h1>OBGYN <em>Patient Management</em> System</h1>
+  <p class="sub">Dr. Johnny Barakat · Choose a module. Each one opens exactly as you built it.</p>
+  <div class="grid" id="grid"></div>
+
+  <div class="tools">
+    <h2>Backup &amp; transfer between laptop and iPhone</h2>
+    <p>All modules save to this browser. To move everything to another device, export here and import there. Data stays on your devices and is never sent to a server.</p>
+    <button class="btn" onclick="exportAll()">Export all data</button>
+    <button class="btn" onclick="document.getElementById('imp').click()">Import backup</button>
+    <input type="file" id="imp" accept=".json" hidden onchange="importAll(this)">
+    <div id="msg"></div>
+  </div>
+</div>
+
+<div id="viewer">
+  <div id="bar"><button onclick="goHome()">← Home</button><span id="ttl"></span></div>
+  <div id="frames"></div>
+</div>
+
+<script>
+// Each app lives untouched in its own folder inside the same repository.
+var APPS=[
+  {id:'gynecare',  icon:'🏥', name:'Clinic Management',      desc:'GyneCare Pro: patient files, pregnancies, appointments, lab scan.', path:'apps/gynecare/index.html'},
+  {id:'echo',      icon:'📡', name:'Ultrasound Reports',     desc:'EchoReport: gyn, obstetrical and breast reports, PDF, signature.',  path:'apps/echoreport/index.html'},
+  {id:'colpo',     icon:'📷', name:'Colposcopy Capture',     desc:'Image capture and colposcopy reporting.',                            path:'apps/colposcopy/index.html'},
+  {id:'oprep',     icon:'⚕️', name:'Operative Reports',      desc:'GynOp: oncologic, benign surgery and assisted reproduction.',        path:'apps/operative-reports/index.html'},
+  {id:'ob',        icon:'🌸', name:'Prenatal Planner',       desc:'OB Care Planner: schedule, share by Outlook, WhatsApp, SharpDesk.',  path:'apps/ob-planner/index.html'}
+];
+var grid=document.getElementById('grid'),frames=document.getElementById('frames');
+
+APPS.forEach(function(a){
+  var b=document.createElement('button');
+  b.className='tile';b.id='tile-'+a.id;
+  b.innerHTML='<span class="ic">'+a.icon+'</span><b>'+a.name+'</b><span class="d">'+a.desc+'</span>';
+  b.onclick=function(){openApp(a)};
+  grid.appendChild(b);
+  // Mark modules whose file has not been added to the repository yet
+  fetch(a.path,{method:'HEAD'}).then(function(r){
+    if(r.status===404){b.classList.add('off');b.insertAdjacentHTML('beforeend','<br><span class="tag">File not added yet</span>')}
+  }).catch(function(){});
+});
+
+function openApp(a){
+  var f=document.getElementById('f-'+a.id);
+  if(!f){f=document.createElement('iframe');f.id='f-'+a.id;f.src=a.path;
+    f.setAttribute('allow','camera; microphone; clipboard-write; fullscreen');frames.appendChild(f)}
+  frames.querySelectorAll('iframe').forEach(function(x){x.classList.remove('on')});
+  f.classList.add('on');
+  document.getElementById('ttl').textContent=a.name;
+  document.getElementById('viewer').classList.add('on');
+  document.getElementById('home').style.display='none';
+}
+function goHome(){
+  document.getElementById('viewer').classList.remove('on');
+  document.getElementById('home').style.display='block';
+}
+
+// Backup: every module shares this site's storage, so one file covers all of them
+function say(t){document.getElementById('msg').textContent=t}
+function exportAll(){
+  var d={};
+  for(var i=0;i<localStorage.length;i++){var k=localStorage.key(i);d[k]=localStorage.getItem(k)}
+  var blob=new Blob([JSON.stringify({system:'OBGYN-PMS',exported:new Date().toISOString(),data:d})],{type:'application/json'});
+  var a=document.createElement('a');a.href=URL.createObjectURL(blob);
+  a.download='OBGYN-Backup-'+new Date().toISOString().slice(0,10)+'.json';
+  document.body.appendChild(a);a.click();document.body.removeChild(a);
+  say('Backup exported. Send it to the other device (AirDrop or email) and import it there.');
+}
+function importAll(inp){
+  var f=inp.files[0];if(!f)return;
+  var r=new FileReader();
+  r.onload=function(e){
+    try{
+      var j=JSON.parse(e.target.result);
+      if(j.system!=='OBGYN-PMS'||!j.data)throw 0;
+      if(!confirm('This replaces the data on this device with the backup. Continue?'))return;
+      Object.keys(j.data).forEach(function(k){localStorage.setItem(k,j.data[k])});
+      frames.innerHTML='';
+      say('Backup imported. Open a module to see the data.');
+    }catch(x){say('This is not a valid backup file.')}
+  };
+  r.readAsText(f);inp.value='';
+}
+</script>
+</body>
+</html>
